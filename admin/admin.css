@@ -1,0 +1,475 @@
+/* 全域樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #1a1a2e;
+    color: #eee;
+    min-height: 100vh;
+}
+
+.screen {
+    min-height: 100vh;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 按鈕樣式 */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #444;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #555;
+}
+
+.btn-spectate {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    color: white;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-spectate:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(56, 239, 125, 0.4);
+}
+
+/* 登入畫面 */
+#login-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.login-container {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-container h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #aaa;
+    font-size: 14px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+#login-form .btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+.error {
+    color: #ff6b6b;
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+/* 儀表板 Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+header h1 {
+    font-size: 20px;
+}
+
+/* 統計卡片 */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 30px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    font-size: 32px;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #888;
+    margin-top: 4px;
+}
+
+/* 房間列表 */
+.rooms-container {
+    padding: 0 30px 30px;
+}
+
+.rooms-container h2 {
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: #ccc;
+}
+
+.rooms-table-wrapper {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rooms-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rooms-table th,
+.rooms-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rooms-table th {
+    background: rgba(0, 0, 0, 0.2);
+    color: #888;
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rooms-table td {
+    font-size: 14px;
+}
+
+.rooms-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.no-data {
+    text-align: center;
+    color: #666;
+    padding: 40px !important;
+}
+
+/* 狀態標籤 */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-waiting {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.status-playing {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+}
+
+.status-finished {
+    background: rgba(158, 158, 158, 0.2);
+    color: #9e9e9e;
+}
+
+/* 觀戰畫面 */
+.spectate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.spectate-info {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: #ccc;
+}
+
+/* 遊戲資訊面板 */
+.game-info-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 150px;
+}
+
+.player-label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.player-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.player-score {
+    font-size: 14px;
+    color: #4caf50;
+    margin-top: 2px;
+}
+
+.host-info {
+    border-left: 3px solid #2196f3;
+    padding-left: 15px;
+}
+
+.guest-info {
+    border-right: 3px solid #ff9800;
+    padding-right: 15px;
+}
+
+.game-status-center {
+    text-align: center;
+}
+
+.turn-indicator {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.turn-indicator.host-turn {
+    color: #2196f3;
+}
+
+.turn-indicator.guest-turn {
+    color: #ff9800;
+}
+
+.timer {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.timer.warning {
+    color: #ff9800;
+    animation: pulse 1s infinite;
+}
+
+.timer.danger {
+    color: #f44336;
+    animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 遊戲畫布容器 */
+#game-canvas-container {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 100px;
+}
+
+#game-canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* 圖例 */
+.legend {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 15px;
+    border-radius: 8px;
+    z-index: 100;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.mine-color {
+    background: radial-gradient(circle, #ff4444, #aa0000);
+    border: 2px solid #ff6666;
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+}
+
+/* 高亮當前玩家 */
+.player-info.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+
+.host-info.active {
+    border-left-color: #64b5f6;
+    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+}
+
+.guest-info.active {
+    border-right-color: #ffb74d;
+    box-shadow: 0 0 20px rgba(255, 152, 0, 0.3);
+}
+
+/* RWD */
+@media (max-width: 768px) {
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 15px;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .rooms-container {
+        padding: 0 15px 15px;
+    }
+
+    .rooms-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .rooms-table {
+        min-width: 800px;
+    }
+
+    .game-info-panel {
+        padding: 10px 15px;
+    }
+
+    .player-info {
+        min-width: 100px;
+    }
+
+    .player-name {
+        font-size: 14px;
+    }
+}

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>踩地雷後台管理</title>
+    <link rel="stylesheet" href="admin.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- 登入畫面 -->
+    <div id="login-screen" class="screen">
+        <div class="login-container">
+            <h1>🎮 踩地雷後台管理</h1>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">帳號</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary">登入</button>
+                <p id="login-error" class="error"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- 儀表板畫面 -->
+    <div id="dashboard-screen" class="screen hidden">
+        <header>
+            <h1>🎮 踩地雷後台管理</h1>
+            <button id="logout-btn" class="btn btn-secondary">登出</button>
+        </header>
+
+        <!-- 統計資訊卡片 -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon">🏠</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="total-rooms">0</span>
+                    <span class="stat-label">總房間數</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚔️</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="playing-rooms">0</span>
+                    <span class="stat-label">對戰中</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="waiting-rooms">0</span>
+                    <span class="stat-label">等待中</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <span class="stat-value" id="finished-rooms">0</span>
+                    <span class="stat-label">已結束</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 房間列表 -->
+        <div class="rooms-container">
+            <h2>房間列表</h2>
+            <div class="rooms-table-wrapper">
+                <table class="rooms-table">
+                    <thead>
+                        <tr>
+                            <th>房間代碼</th>
+                            <th>狀態</th>
+                            <th>房主</th>
+                            <th>訪客</th>
+                            <th>回合</th>
+                            <th>時間</th>
+                            <th>遊玩時長</th>
+                            <th>觀戰人數</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rooms-tbody">
+                        <tr>
+                            <td colspan="9" class="no-data">目前沒有房間</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 觀戰畫面 -->
+    <div id="spectate-screen" class="screen hidden">
+        <header class="spectate-header">
+            <button id="back-to-dashboard" class="btn btn-secondary">← 返回儀表板</button>
+            <div class="spectate-info">
+                <span id="spectate-room-code">房間: ---</span>
+                <span id="spectate-count">👁️ 觀戰人數: 0</span>
+            </div>
+        </header>
+
+        <!-- 遊戲資訊面板 -->
+        <div class="game-info-panel">
+            <div class="player-info host-info">
+                <span class="player-label">房主</span>
+                <span class="player-name" id="spectate-host-name">---</span>
+                <span class="player-score" id="spectate-host-score">0 分</span>
+            </div>
+            <div class="game-status-center">
+                <div class="turn-indicator" id="spectate-turn">等待開始</div>
+                <div class="timer" id="spectate-timer">--</div>
+            </div>
+            <div class="player-info guest-info">
+                <span class="player-label">訪客</span>
+                <span class="player-name" id="spectate-guest-name">---</span>
+                <span class="player-score" id="spectate-guest-score">0 分</span>
+            </div>
+        </div>
+
+        <!-- 3D 遊戲畫布容器 -->
+        <div id="game-canvas-container"></div>
+
+        <!-- 圖例 -->
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-color mine-color"></span>
+                <span>地雷位置（觀戰者可見）</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script type="module" src="admin.js"></script>
+</body>
+</html>

@@ -49,7 +49,9 @@ export function createRoom(hostSocketId, hostName, options = {}) {
             turnTimeLimit: options.turnTimeLimit || CONFIG.TURN_TIME_LIMIT
         },
         game: null, // GameEngine 實例
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        gameStartedAt: null, // 遊戲開始時間
+        spectators: new Set() // 觀戰者 Socket ID 集合
     };
 
     rooms.set(roomCode, room);
@@ -206,6 +208,121 @@ export function getAllRooms() {
     return Array.from(rooms.values());
 }
 
+/**
+ * 取得所有房間的統計資訊（用於後台管理）
+ * @returns {object} 統計資訊
+ */
+export function getAllRoomsStats() {
+    const roomsList = [];
+    let playingCount = 0;
+    let waitingCount = 0;
+    let finishedCount = 0;
+
+    for (const room of rooms.values()) {
+        // 統計各狀態房間數
+        if (room.gameState === 'playing') playingCount++;
+        else if (room.gameState === 'waiting') waitingCount++;
+        else if (room.gameState === 'finished') finishedCount++;
+
+        // 計算遊玩時長
+        let playDuration = null;
+        if (room.gameStartedAt) {
+            playDuration = Math.floor((Date.now() - room.gameStartedAt) / 1000);
+        }
+
+        roomsList.push({
+            code: room.code,
+            gameState: room.gameState,
+            hostName: room.host?.name || null,
+            guestName: room.guest?.name || null,
+            settings: room.settings,
+            createdAt: room.createdAt,
+            gameStartedAt: room.gameStartedAt,
+            playDuration,
+            spectatorCount: room.spectators.size,
+            currentPlayer: room.game?.currentPlayer || null,
+            timeRemaining: room.game?.timeRemaining || null,
+            scores: room.game?.scores || { host: 0, guest: 0 }
+        });
+    }
+
+    return {
+        totalRooms: rooms.size,
+        playingCount,
+        waitingCount,
+        finishedCount,
+        rooms: roomsList
+    };
+}
+
+/**
+ * 新增觀戰者到房間
+ * @param {string} roomCode - 房間代碼
+ * @param {string} socketId - 觀戰者 Socket ID
+ * @returns {boolean} 是否成功
+ */
+export function addSpectator(roomCode, socketId) {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.spectators.add(socketId);
+    console.log(`[RoomManager] 觀戰者加入房間: ${roomCode}, 目前觀戰人數: ${room.spectators.size}`);
+    return true;
+}
+
+/**
+ * 移除觀戰者
+ * @param {string} roomCode - 房間代碼
+ * @param {string} socketId - 觀戰者 Socket ID
+ * @returns {boolean} 是否成功
+ */
+export function removeSpectator(roomCode, socketId) {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.spectators.delete(socketId);
+    console.log(`[RoomManager] 觀戰者離開房間: ${roomCode}, 目前觀戰人數: ${room.spectators.size}`);
+    return true;
+}
+
+/**
+ * 根據 Socket ID 移除觀戰者（斷線時使用）
+ * @param {string} socketId - 觀戰者 Socket ID
+ * @returns {string|null} 離開的房間代碼
+ */
+export function removeSpectatorBySocketId(socketId) {
+    for (const [code, room] of rooms.entries()) {
+        if (room.spectators.has(socketId)) {
+            room.spectators.delete(socketId);
+            console.log(`[RoomManager] 觀戰者斷線離開房間: ${code}`);
+            return code;
+        }
+    }
+    return null;
+}
+
+/**
+ * 取得房間觀戰人數
+ * @param {string} roomCode - 房間代碼
+ * @returns {number} 觀戰人數
+ */
+export function getSpectatorCount(roomCode) {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return 0;
+    return room.spectators.size;
+}
+
+/**
+ * 取得房間所有觀戰者 Socket ID
+ * @param {string} roomCode - 房間代碼
+ * @returns {string[]} 觀戰者 Socket ID 陣列
+ */
+export function getSpectators(roomCode) {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return [];
+    return Array.from(room.spectators);
+}
+
 // 定期清理閒置房間
 setInterval(cleanupIdleRooms, 5 * 60 * 1000); // 每 5 分鐘清理一次
 
@@ -217,5 +334,11 @@ export default {
     getRoomBySocketId,
     getOpponent,
     getPlayerRole,
-    getAllRooms
+    getAllRooms,
+    getAllRoomsStats,
+    addSpectator,
+    removeSpectator,
+    removeSpectatorBySocketId,
+    getSpectatorCount,
+    getSpectators
 };

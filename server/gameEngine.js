@@ -499,6 +499,47 @@ export class GameEngine {
     }
 
     /**
+     * 取得觀戰者用的完整網格（顯示所有地雷位置，上帝視角）
+     */
+    getFullGridForSpectator() {
+        const fullGrid = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            fullGrid[x] = [];
+            for (let z = 0; z < this.gridSize; z++) {
+                const tile = this.grid[x][z];
+                fullGrid[x][z] = {
+                    x,
+                    z,
+                    isRevealed: tile.isRevealed,
+                    isMine: tile.isMine, // 觀戰者可看到所有地雷
+                    neighborMines: tile.neighborMines
+                };
+            }
+        }
+        return fullGrid;
+    }
+
+    /**
+     * 取得觀戰者用的完整遊戲狀態
+     */
+    getSpectatorGameState() {
+        return {
+            gridSize: this.gridSize,
+            minesCount: this.minesCount,
+            currentPlayer: this.currentPlayer,
+            revealsThisTurn: this.revealsThisTurn,
+            totalRevealed: this.totalRevealed,
+            gameStatus: this.gameStatus,
+            winner: this.winner,
+            timeRemaining: this.timeRemaining,
+            turnTimeLimit: this.turnTimeLimit,
+            canPass: this.revealsThisTurn >= CONFIG.MIN_REVEALS_TO_PASS,
+            scores: this.scores,
+            grid: this.getFullGridForSpectator() // 觀戰者獲得完整網格
+        };
+    }
+
+    /**
      * 取得遊戲狀態
      */
     getGameState() {

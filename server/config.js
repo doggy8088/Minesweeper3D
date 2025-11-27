@@ -2,6 +2,11 @@
  * 遊戲參數化設定
  */
 export const CONFIG = {
+    // 管理員帳號設定
+    ADMIN_USERNAME: 'admin',
+    ADMIN_PASSWORD: 'admin123',
+    JWT_SECRET: 'minesweeper3d-admin-secret-key-2024',
+
     // 回合時間限制（秒）
     TURN_TIME_LIMIT: 30,
 

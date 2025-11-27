@@ -4,12 +4,20 @@
  */
 import { GameEngine } from './gameEngine.js';
 import * as roomManager from './roomManager.js';
+import { broadcastToSpectators, broadcastRoomsUpdate } from './adminHandler.js';
+
+// 儲存 io 和 adminNamespace 的參考
+let ioInstance = null;
+let adminNamespaceInstance = null;
 
 /**
  * 設定 Socket.IO 事件處理
  * @param {import('socket.io').Server} io - Socket.IO 伺服器實例
+ * @param {import('socket.io').Namespace} adminNamespace - /admin 命名空間
  */
-export function setupSocketHandlers(io) {
+export function setupSocketHandlers(io, adminNamespace) {
+    ioInstance = io;
+    adminNamespaceInstance = adminNamespace;
     io.on('connection', (socket) => {
         console.log(`[Socket] 用戶連接: ${socket.id}`);
 
@@ -35,6 +43,11 @@ export function setupSocketHandlers(io) {
             });
 
             console.log(`[Socket] 房間已建立: ${room.code}`);
+
+            // 通知後台房間列表更新
+            if (adminNamespaceInstance) {
+                broadcastRoomsUpdate(adminNamespaceInstance);
+            }
         });
 
         /**
@@ -113,18 +126,41 @@ export function setupSocketHandlers(io) {
                 timeRemaining: room.game.timeRemaining
             });
 
+            // 廣播給觀戰者（包含完整地雷資訊）
+            broadcastToSpectators(io, room.code, 'tile_revealed', {
+                x,
+                z,
+                player: playerRole,
+                hitMine: result.hitMine,
+                revealedTiles: result.revealedTiles,
+                canPass: result.canPass,
+                revealsThisTurn: result.revealsThisTurn,
+                scores: result.scores,
+                timeRemaining: room.game.timeRemaining
+            });
+
             // 如果遊戲結束
             if (result.gameOver) {
                 // 記錄輸家，下一局由輸家先手
                 room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
 
-                io.to(room.code).emit('game_over', {
+                const gameOverData = {
                     winner: result.winner,
                     loser: result.loser,
                     reason: result.hitMine ? 'hit_mine' : 'all_safe_revealed',
                     scores: result.scores,
                     allMines: result.allMines || room.game.getAllMines()
-                });
+                };
+
+                io.to(room.code).emit('game_over', gameOverData);
+
+                // 廣播給觀戰者
+                broadcastToSpectators(io, room.code, 'game_over', gameOverData);
+
+                // 通知後台房間狀態更新
+                if (adminNamespaceInstance) {
+                    broadcastRoomsUpdate(adminNamespaceInstance);
+                }
 
                 room.gameState = 'finished';
                 room.game.destroy();
@@ -151,6 +187,14 @@ export function setupSocketHandlers(io) {
 
             // 廣播回合切換
             io.to(room.code).emit('turn_changed', {
+                currentPlayer: result.nextPlayer,
+                previousPlayer: playerRole,
+                scores: result.scores,
+                timeRemaining: room.game.turnTimeLimit
+            });
+
+            // 廣播給觀戰者
+            broadcastToSpectators(io, room.code, 'turn_changed', {
                 currentPlayer: result.nextPlayer,
                 previousPlayer: playerRole,
                 scores: result.scores,
@@ -190,6 +234,11 @@ export function setupSocketHandlers(io) {
                 // 清理遊戲資源
                 if (room.game) {
                     room.game.destroy();
+                }
+
+                // 通知後台房間列表更新
+                if (adminNamespaceInstance) {
+                    broadcastRoomsUpdate(adminNamespaceInstance);
                 }
             }
         });
@@ -240,6 +289,8 @@ function startGame(io, room) {
         // 計時器更新回調
         (timeRemaining) => {
             io.to(room.code).emit('timer_update', { timeRemaining });
+            // 同時通知觀戰者
+            broadcastToSpectators(ioInstance, room.code, 'timer_update', { timeRemaining });
         },
         // 回合超時回調
         () => {
@@ -252,6 +303,7 @@ function startGame(io, room) {
 
     // 更新房間狀態
     room.gameState = 'playing';
+    room.gameStartedAt = Date.now(); // 記錄遊戲開始時間
 
     // 啟動計時器
     room.game.startTimer();
@@ -271,6 +323,27 @@ function startGame(io, room) {
             name: room.guest.name
         }
     });
+
+    // 通知觀戰者遊戲開始（包含完整地雷資訊）
+    broadcastToSpectators(ioInstance, room.code, 'game_start', {
+        grid: room.game.getFullGridForSpectator(),
+        gridSize: room.settings.gridSize,
+        minesCount: room.settings.minesCount,
+        currentPlayer: startingPlayer,
+        turnTimeLimit: room.settings.turnTimeLimit,
+        timeRemaining: room.settings.turnTimeLimit,
+        host: {
+            name: room.host.name
+        },
+        guest: {
+            name: room.guest.name
+        }
+    });
+
+    // 通知後台房間狀態更新
+    if (adminNamespaceInstance) {
+        broadcastRoomsUpdate(adminNamespaceInstance);
+    }
 
     console.log(`[Socket] 遊戲開始: ${room.code}`);
 }
@@ -293,24 +366,52 @@ function handleTimeout(io, room) {
         timeRemaining: room.game.turnTimeLimit
     });
 
+    // 廣播給觀戰者
+    broadcastToSpectators(ioInstance, room.code, 'timeout_action', {
+        player: result.nextPlayer === 'host' ? 'guest' : 'host',
+        autoRevealed: result.autoRevealed,
+        revealedTiles: result.revealedTiles,
+        hitMine: result.hitMine,
+        nextPlayer: result.nextPlayer,
+        timeRemaining: room.game.turnTimeLimit
+    });
+
     // 如果遊戲結束
     if (result.gameOver) {
         // 記錄輸家，下一局由輸家先手
         room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
 
-        io.to(room.code).emit('game_over', {
+        const gameOverData = {
             winner: result.winner,
             loser: result.loser,
             reason: 'timeout_hit_mine',
             scores: result.scores,
             allMines: result.allMines || room.game.getAllMines()
-        });
+        };
+
+        io.to(room.code).emit('game_over', gameOverData);
+
+        // 廣播給觀戰者
+        broadcastToSpectators(ioInstance, room.code, 'game_over', gameOverData);
+
+        // 通知後台房間狀態更新
+        if (adminNamespaceInstance) {
+            broadcastRoomsUpdate(adminNamespaceInstance);
+        }
 
         room.gameState = 'finished';
         room.game.destroy();
     } else {
         // 通知回合切換
         io.to(room.code).emit('turn_changed', {
+            currentPlayer: result.nextPlayer,
+            previousPlayer: result.nextPlayer === 'host' ? 'guest' : 'host',
+            reason: 'timeout',
+            timeRemaining: room.game.turnTimeLimit
+        });
+
+        // 廣播給觀戰者
+        broadcastToSpectators(ioInstance, room.code, 'turn_changed', {
             currentPlayer: result.nextPlayer,
             previousPlayer: result.nextPlayer === 'host' ? 'guest' : 'host',
             reason: 'timeout',
