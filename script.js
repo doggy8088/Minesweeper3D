@@ -922,7 +922,7 @@ class GameUI {
 
     updateTurn(isMyTurn, playerName) {
         if (this.elements.turnIndicator) {
-            this.elements.turnIndicator.textContent = isMyTurn ? '你的回合' : `${playerName} 的回合`;
+            this.elements.turnIndicator.textContent = isMyTurn ? '你的回合' : '對手的回合';
             this.elements.turnIndicator.className = isMyTurn ? 'turn-indicator my-turn' : 'turn-indicator opponent-turn';
         }
 
