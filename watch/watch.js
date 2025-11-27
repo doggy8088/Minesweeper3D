@@ -784,6 +784,14 @@ class WatchController {
         // 房間關閉
         this.client.onRoomClosed = (data) => {
             this.gameActive = false;
+
+            // 如果還在等待畫面，直接跳轉回首頁
+            if (this.elements.waitingScreen && this.elements.waitingScreen.style.display !== 'none') {
+                alert(data.message || '房間已關閉');
+                window.location.href = '/';
+                return;
+            }
+
             this.elements.gameStatusText.textContent = '房間已關閉';
 
             // 顯示通知
