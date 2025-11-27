@@ -99,20 +99,40 @@ class GameRenderer {
         this.controls.dampingFactor = 0.05;
         this.controls.maxPolarAngle = Math.PI / 2 - 0.1;
 
+        // 儲存預設相機位置
+        this.defaultCameraPosition = { x: 0, y: 25, z: 20 };
+
         // 互動
         this.raycaster = new THREE.Raycaster();
 
         // 載入字型
         await this.loadFont();
 
-        // 事件監聯
+        // 事件監聽
         window.addEventListener('resize', () => this.onWindowResize());
         window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
         window.addEventListener('pointermove', (e) => this.onPointerMove(e));
         window.addEventListener('contextmenu', (e) => this.onRightClick(e));
+        window.addEventListener('keydown', (e) => this.onKeyDown(e));
 
         // 開始動畫循環
         this.animate();
+    }
+
+    onKeyDown(event) {
+        if (event.key === 'Escape') {
+            this.resetCamera();
+        }
+    }
+
+    resetCamera() {
+        this.camera.position.set(
+            this.defaultCameraPosition.x,
+            this.defaultCameraPosition.y,
+            this.defaultCameraPosition.z
+        );
+        this.camera.lookAt(0, 0, 0);
+        this.controls.reset();
     }
 
     loadFont() {
