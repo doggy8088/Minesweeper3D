@@ -194,36 +194,43 @@ multiplayer-minesweeper/
 
 ### Socket 事件流程
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        遊戲流程                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Client A                 Server                 Client B   │
-│     │                       │                       │       │
-│     │── create_room ───────>│                       │       │
-│     │<──── room_created ────│                       │       │
-│     │                       │                       │       │
-│     │                       │<───── join_room ──────│       │
-│     │                       │────── room_joined ───>│       │
-│     │<──── player_joined ───│                       │       │
-│     │                       │                       │       │
-│     │<──── game_start ──────│────── game_start ────>│       │
-│     │                       │                       │       │
-│     │── reveal_tile ───────>│                       │       │
-│     │<──── tile_revealed ───│──── tile_revealed ───>│       │
-│     │                       │                       │       │
-│     │── pass_turn ─────────>│                       │       │
-│     │<──── turn_changed ────│──── turn_changed ────>│       │
-│     │                       │                       │       │
-│     │                       │<───── reveal_tile ────│       │
-│     │<──── tile_revealed ───│──── tile_revealed ───>│       │
-│     │                       │                       │       │
-│     │      ... 重複直到遊戲結束 ...                    │       │
-│     │                       │                       │       │
-│     │<──── game_over ───────│────── game_over ─────>│       │
-│     │                       │                       │       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant A as Client A (Host)
+    participant S as Server
+    participant B as Client B (Guest)
+
+    Note over A,B: 房間建立階段
+    A->>S: create_room
+    S-->>A: room_created
+
+    Note over A,B: 玩家加入階段
+    B->>S: join_room
+    S-->>B: room_joined
+    S-->>A: player_joined
+
+    Note over A,B: 遊戲開始
+    S-->>A: game_start
+    S-->>B: game_start
+
+    Note over A,B: 遊戲進行中
+    A->>S: reveal_tile
+    S-->>A: tile_revealed
+    S-->>B: tile_revealed
+
+    A->>S: pass_turn
+    S-->>A: turn_changed
+    S-->>B: turn_changed
+
+    B->>S: reveal_tile
+    S-->>A: tile_revealed
+    S-->>B: tile_revealed
+
+    Note over A,B: ... 重複直到遊戲結束 ...
+
+    Note over A,B: 遊戲結束
+    S-->>A: game_over
+    S-->>B: game_over
 ```
 
 ### 主要事件
