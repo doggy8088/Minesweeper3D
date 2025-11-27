@@ -1364,6 +1364,11 @@ class Game {
 
         // 錯誤處理
         this.client.onError = (data) => {
+            // 忽略遊戲結束後的狀態錯誤
+            if (data.error === '遊戲未進行中' || data.error === '不是你的回合') {
+                console.log('忽略錯誤:', data.error);
+                return;
+            }
             console.error('錯誤:', data.error);
             this.ui.showError(data.error);
         };
