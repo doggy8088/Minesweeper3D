@@ -282,12 +282,25 @@ export function setupSocketHandlers(io, adminNamespace) {
                             message: '對手已離線，你獲勝了！'
                         });
                     }
+
+                    // 房主離開，房間已刪除，通知觀戰者
+                    broadcastToSpectators(ioInstance, room.code, 'room_closed', {
+                        reason: 'host_disconnected',
+                        message: '房主已離開，房間已關閉'
+                    });
                 } else {
                     // 訪客離開，通知房主
                     io.to(room.host.socketId).emit('game_over', {
                         winner: 'host',
                         reason: 'opponent_disconnected',
                         message: '對手已離線，你獲勝了！'
+                    });
+
+                    // 訪客離開，通知觀戰者遊戲結束
+                    broadcastToSpectators(ioInstance, room.code, 'game_over', {
+                        winner: 'host',
+                        reason: 'opponent_disconnected',
+                        message: '訪客已離線，房主獲勝'
                     });
                 }
 
@@ -308,15 +321,18 @@ export function setupSocketHandlers(io, adminNamespace) {
          */
         socket.on('request_restart', () => {
             const room = roomManager.getRoomBySocketId(socket.id);
+            console.log(`[Socket] request_restart from ${socket.id}, room:`, room ? room.code : 'null');
             if (!room) return;
 
             const playerRole = roomManager.getPlayerRole(room.code, socket.id);
             const opponent = roomManager.getOpponent(room.code, socket.id);
+            console.log(`[Socket] playerRole: ${playerRole}, opponent:`, opponent ? opponent.socketId : 'null');
 
             if (opponent) {
                 io.to(opponent.socketId).emit('restart_requested', {
                     from: playerRole
                 });
+                console.log(`[Socket] restart_requested sent to ${opponent.socketId}`);
             }
         });
 
@@ -325,6 +341,7 @@ export function setupSocketHandlers(io, adminNamespace) {
          */
         socket.on('accept_restart', () => {
             const room = roomManager.getRoomBySocketId(socket.id);
+            console.log(`[Socket] accept_restart from ${socket.id}, room:`, room ? room.code : 'null');
             if (!room || !room.guest) return;
 
             // 重新開始遊戲
@@ -521,27 +538,7 @@ function handleTimeout(io, room) {
 
     const result = room.game.handleTimeout();
 
-    // 廣播超時結果
-    io.to(room.code).emit('timeout_action', {
-        player: result.nextPlayer === 'host' ? 'guest' : 'host',
-        autoRevealed: result.autoRevealed,
-        revealedTiles: result.revealedTiles,
-        hitMine: result.hitMine,
-        nextPlayer: result.nextPlayer,
-        timeRemaining: room.game.turnTimeLimit
-    });
-
-    // 廣播給觀戰者
-    broadcastToSpectators(ioInstance, room.code, 'timeout_action', {
-        player: result.nextPlayer === 'host' ? 'guest' : 'host',
-        autoRevealed: result.autoRevealed,
-        revealedTiles: result.revealedTiles,
-        hitMine: result.hitMine,
-        nextPlayer: result.nextPlayer,
-        timeRemaining: room.game.turnTimeLimit
-    });
-
-    // 如果遊戲結束
+    // 如果遊戲結束（超時沒有點擊任何格子）
     if (result.gameOver) {
         // 記錄輸家，下一局由輸家先手
         room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
@@ -557,7 +554,7 @@ function handleTimeout(io, room) {
         const gameOverData = {
             winner: result.winner,
             loser: result.loser,
-            reason: 'timeout_hit_mine',
+            reason: result.reason || 'timeout_no_action',
             scores: result.scores,
             allMines: result.allMines || room.game.getAllMines(),
             matchStats: room.matchStats
@@ -576,11 +573,29 @@ function handleTimeout(io, room) {
         room.gameState = 'finished';
         room.game.destroy();
     } else {
+        // 自動傳遞回合（有揭開格子但未傳遞）
+        io.to(room.code).emit('timeout_action', {
+            player: result.nextPlayer === 'host' ? 'guest' : 'host',
+            autoPassed: result.autoPassed,
+            nextPlayer: result.nextPlayer,
+            timeRemaining: room.game.turnTimeLimit,
+            scores: result.scores
+        });
+
+        // 廣播給觀戰者
+        broadcastToSpectators(ioInstance, room.code, 'timeout_action', {
+            player: result.nextPlayer === 'host' ? 'guest' : 'host',
+            autoPassed: result.autoPassed,
+            nextPlayer: result.nextPlayer,
+            timeRemaining: room.game.turnTimeLimit,
+            scores: result.scores
+        });
+
         // 通知回合切換
         io.to(room.code).emit('turn_changed', {
             currentPlayer: result.nextPlayer,
             previousPlayer: result.nextPlayer === 'host' ? 'guest' : 'host',
-            reason: 'timeout',
+            reason: 'timeout_auto_pass',
             timeRemaining: room.game.turnTimeLimit
         });
 
@@ -588,7 +603,7 @@ function handleTimeout(io, room) {
         broadcastToSpectators(ioInstance, room.code, 'turn_changed', {
             currentPlayer: result.nextPlayer,
             previousPlayer: result.nextPlayer === 'host' ? 'guest' : 'host',
-            reason: 'timeout',
+            reason: 'timeout_auto_pass',
             timeRemaining: room.game.turnTimeLimit
         });
     }

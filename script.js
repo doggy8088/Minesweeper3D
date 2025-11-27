@@ -736,10 +736,12 @@ class MultiplayerClient {
     }
 
     requestRestart() {
+        console.log('[Client] Sending request_restart');
         this.socket.emit('request_restart');
     }
 
     acceptRestart() {
+        console.log('[Client] Sending accept_restart');
         this.socket.emit('accept_restart');
     }
 
@@ -801,6 +803,12 @@ class GameUI {
             gameResult: document.getElementById('game-result'),
             restartBtn: document.getElementById('restart-btn'),
             backToMenuBtn: document.getElementById('back-to-menu-btn'),
+            waitingForOpponent: document.getElementById('waiting-for-opponent'),
+
+            // 再玩一次對話框
+            restartRequestDialog: document.getElementById('restart-request-dialog'),
+            acceptRestartBtn: document.getElementById('accept-restart-btn'),
+            declineRestartBtn: document.getElementById('decline-restart-btn'),
 
             // 彈幕與觀戰
             shareSpectateBtn: document.getElementById('share-spectate-btn'),
@@ -985,6 +993,14 @@ class GameUI {
             if (reason === 'opponent_disconnected') {
                 resultText = '對手已離線，你獲勝了！';
                 resultColor = '#4CAF50';
+            } else if (reason === 'timeout_no_action') {
+                if (isWinner) {
+                    resultText = '⏰ 對手超時未動作，你獲勝了！';
+                    resultColor = '#4CAF50';
+                } else {
+                    resultText = '⏰ 超時未動作，你輸了！';
+                    resultColor = '#FF0000';
+                }
             } else if (isWinner) {
                 resultText = '🎉 恭喜獲勝！';
                 resultColor = '#4CAF50';
@@ -995,6 +1011,36 @@ class GameUI {
 
             this.elements.gameResult.textContent = resultText;
             this.elements.gameResult.style.color = resultColor;
+        }
+
+        // 控制「再玩一次」按鈕顯示
+        if (this.elements.restartBtn) {
+            if (reason === 'opponent_disconnected') {
+                // 對手離線，隱藏按鈕並顯示等待訊息
+                this.elements.restartBtn.style.display = 'none';
+                // 如果有等待訊息元素，顯示它
+                if (this.elements.waitingForOpponent) {
+                    this.elements.waitingForOpponent.style.display = 'block';
+                }
+            } else {
+                // 正常遊戲結束，顯示按鈕
+                this.elements.restartBtn.style.display = 'block';
+                if (this.elements.waitingForOpponent) {
+                    this.elements.waitingForOpponent.style.display = 'none';
+                }
+            }
+        }
+    }
+
+    showRestartRequestDialog() {
+        if (this.elements.restartRequestDialog) {
+            this.elements.restartRequestDialog.style.display = 'flex';
+        }
+    }
+
+    hideRestartRequestDialog() {
+        if (this.elements.restartRequestDialog) {
+            this.elements.restartRequestDialog.style.display = 'none';
         }
     }
 
@@ -1285,9 +1331,8 @@ class Game {
 
         // 重新開始請求
         this.client.onRestartRequested = (data) => {
-            if (confirm('對手請求重新開始，是否同意？')) {
-                this.client.acceptRestart();
-            }
+            console.log('[GameController] Received restart_requested from:', data.from);
+            this.ui.showRestartRequestDialog();
         };
 
         // 觀戰人數更新
@@ -1365,13 +1410,30 @@ class Game {
         });
 
         // 重新開始
-        this.ui.elements.restartBtn?.addEventListener('click', () => {
-            this.client.requestRestart();
-        });
+        if (this.ui.elements.restartBtn) {
+            console.log('[GameController] restartBtn found, binding click event');
+            this.ui.elements.restartBtn.addEventListener('click', () => {
+                console.log('[GameController] Restart button clicked');
+                this.client.requestRestart();
+            });
+        } else {
+            console.error('[GameController] restartBtn NOT found!');
+        }
 
         // 返回選單
         this.ui.elements.backToMenuBtn?.addEventListener('click', () => {
             location.reload();
+        });
+
+        // 接受再玩一次
+        this.ui.elements.acceptRestartBtn?.addEventListener('click', () => {
+            this.ui.hideRestartRequestDialog();
+            this.client.acceptRestart();
+        });
+
+        // 拒絕再玩一次
+        this.ui.elements.declineRestartBtn?.addEventListener('click', () => {
+            this.ui.hideRestartRequestDialog();
         });
 
         // 分享觀戰連結

@@ -572,6 +572,16 @@ body {
     font-weight: 500;
 }
 
+.game-over-content .btn-secondary {
+    background: #666;
+    color: white;
+    border: none;
+}
+
+.game-over-content .btn-secondary:hover {
+    background: #555;
+}
+
 /* RWD 響應式設計 */
 @media (max-width: 768px) {
     #chat-sidebar {

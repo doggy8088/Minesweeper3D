@@ -408,6 +408,12 @@ class AdminClient {
             }
         });
 
+        this.socket.on('room_closed', (data) => {
+            // 房間已關閉，返回儀表板
+            alert(data.message || '房間已關閉');
+            this.leaveSpectate();
+        });
+
         this.socket.on('spectator_count_update', (data) => {
             document.getElementById('spectate-count').textContent = `👁️ 觀戰人數: ${data.count}`;
         });

@@ -181,8 +181,12 @@ export function broadcastRoomsUpdate(adminNamespace) {
  * @param {object} data - 事件資料
  */
 export function broadcastToSpectators(io, roomCode, eventName, data) {
+    // 廣播到後台觀戰者 (/admin 命名空間)
     const adminNamespace = io.of('/admin');
     adminNamespace.to(`spectate:${roomCode}`).emit(eventName, data);
+
+    // 廣播到公開觀戰者 (主命名空間)
+    io.to(`spectate:${roomCode}`).emit(eventName, data);
 }
 
 /**

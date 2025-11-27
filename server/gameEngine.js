@@ -385,8 +385,8 @@ export class GameEngine {
     handleTimeout() {
         const player = this.currentPlayer;
 
-        // 第一回合超時（未開局）= 直接判輸
-        if (this.isFirstMove) {
+        // 回合內沒有揭開任何格子 = 判輸
+        if (this.revealsThisTurn === 0) {
             this.gameStatus = 'finished';
             this.winner = player === 'host' ? 'guest' : 'host';
             this.stopTimer();
@@ -396,49 +396,28 @@ export class GameEngine {
                 gameOver: true,
                 winner: this.winner,
                 loser: player,
-                reason: 'first_move_timeout',
-                scores: this.scores
+                reason: 'timeout_no_action',
+                scores: this.scores,
+                allMines: this.getAllMines()
             };
         }
 
-        // 正常回合超時：隨機揭開安全格並傳遞
-        const safeTiles = this.getSafeTiles();
+        // 有揭開格子但未傳遞：自動傳遞回合
+        this.lastPassedBy = player;
+        this.currentPlayer = player === 'host' ? 'guest' : 'host';
+        this.revealsThisTurn = 0;
+        this.resetTimer();
 
-        if (safeTiles.length > 0) {
-            // 隨機選擇一個安全格子
-            const randomTile = safeTiles[Math.floor(Math.random() * safeTiles.length)];
-            const result = this.revealTile(randomTile.x, randomTile.z, player);
+        console.log(`[GameEngine] 超時自動傳遞: ${player} -> ${this.currentPlayer}`);
 
-            // 自動傳遞回合
-            if (!result.gameOver) {
-                this.currentPlayer = player === 'host' ? 'guest' : 'host';
-                this.revealsThisTurn = 0;
-                this.lastPassedBy = player;
-                this.resetTimer();
-            }
-
-            return {
-                timeout: true,
-                autoRevealed: { x: randomTile.x, z: randomTile.z },
-                ...result,
-                nextPlayer: this.currentPlayer
-            };
-        } else {
-            // 沒有安全格子，強制揭開地雷
-            const unrevealedTiles = this.getUnrevealedTiles();
-            if (unrevealedTiles.length > 0) {
-                const randomTile = unrevealedTiles[Math.floor(Math.random() * unrevealedTiles.length)];
-                const result = this.revealTile(randomTile.x, randomTile.z, player);
-
-                return {
-                    timeout: true,
-                    autoRevealed: { x: randomTile.x, z: randomTile.z },
-                    ...result
-                };
-            }
-        }
-
-        return { timeout: true, error: '無法處理超時' };
+        return {
+            timeout: true,
+            gameOver: false,
+            autoPassed: true,
+            nextPlayer: this.currentPlayer,
+            scores: this.scores,
+            timeRemaining: this.timeRemaining
+        };
     }
 
     /**

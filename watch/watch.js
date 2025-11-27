@@ -389,6 +389,7 @@ class SpectateClient {
         this.onTimerUpdate = null;
         this.onTimeoutAction = null;
         this.onGameOver = null;
+        this.onRoomClosed = null;
         this.onSpectatorCountUpdate = null;
         this.onDanmaku = null;
         this.onError = null;
@@ -450,6 +451,11 @@ class SpectateClient {
         // 遊戲結束
         this.socket.on('game_over', (data) => {
             if (this.onGameOver) this.onGameOver(data);
+        });
+
+        // 房間關閉
+        this.socket.on('room_closed', (data) => {
+            if (this.onRoomClosed) this.onRoomClosed(data);
         });
 
         // 觀戰人數更新
@@ -762,6 +768,9 @@ class WatchController {
                     case 'timeout_hit_mine':
                         reason = '超時後踩到地雷';
                         break;
+                    case 'timeout_no_action':
+                        reason = '超時未動作';
+                        break;
                     default:
                         reason = '';
                 }
@@ -770,6 +779,19 @@ class WatchController {
             }, 1500);
 
             this.addSystemMessage(`遊戲結束！${data.winner === 'host' ? this.hostName : this.guestName} 獲勝！`);
+        };
+
+        // 房間關閉
+        this.client.onRoomClosed = (data) => {
+            this.gameActive = false;
+            this.elements.gameStatusText.textContent = '房間已關閉';
+
+            // 顯示通知
+            this.elements.gameOverResult.textContent = '⚠️ 房間已關閉';
+            this.elements.gameOverMessage.textContent = data.message || '房主已離開，房間已關閉';
+            this.elements.gameOverOverlay.classList.remove('hidden');
+
+            this.addSystemMessage('房間已關閉：' + (data.message || '房主已離開'));
         };
 
         // 觀戰人數更新
