@@ -359,12 +359,7 @@ export function setupSocketHandlers(io, adminNamespace) {
                 return;
             }
 
-            if (room.gameState === 'finished') {
-                socket.emit('spectate_error', { error: '遊戲已結束' });
-                return;
-            }
-
-            // 加入觀戰
+            // 加入觀戰（只要房間存在就可以觀戰，包括遊戲結束後）
             roomManager.addPublicSpectator(roomCode, socket.id);
 
             // 加入 Socket.IO 房間 (用於接收遊戲事件與彈幕)
