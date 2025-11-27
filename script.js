@@ -785,6 +785,8 @@ class GameUI {
             difficultyValue: document.getElementById('difficulty-value'),
             timeLimitSlider: document.getElementById('time-limit-slider'),
             timeLimitValue: document.getElementById('time-limit-value'),
+            advancedToggle: document.getElementById('advanced-toggle'),
+            advancedSettings: document.getElementById('advanced-settings'),
 
             // 大廳
             roomCodeDisplay: document.getElementById('room-code-display'),
@@ -861,6 +863,15 @@ class GameUI {
         if (this.elements.timeLimitSlider) {
             this.elements.timeLimitSlider.addEventListener('input', (e) => {
                 this.elements.timeLimitValue.textContent = e.target.value;
+            });
+        }
+
+        // 進階設定展開/收合
+        if (this.elements.advancedToggle && this.elements.advancedSettings) {
+            this.elements.advancedToggle.addEventListener('click', () => {
+                const isOpen = this.elements.advancedSettings.style.display !== 'none';
+                this.elements.advancedSettings.style.display = isOpen ? 'none' : 'block';
+                this.elements.advancedToggle.classList.toggle('open', !isOpen);
             });
         }
 

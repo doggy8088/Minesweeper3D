@@ -107,6 +107,38 @@
             font-size: 14px;
         }
 
+        /* 進階設定 */
+        .advanced-settings-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            margin: 5px 0 10px;
+            color: #666;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .advanced-settings-toggle:hover {
+            color: #3B4CCA;
+        }
+
+        .advanced-settings-toggle .toggle-arrow {
+            transition: transform 0.3s;
+        }
+
+        .advanced-settings-toggle.open .toggle-arrow {
+            transform: rotate(180deg);
+        }
+
+        .advanced-settings {
+            padding: 10px 0;
+            border-top: 1px dashed #ddd;
+            margin-bottom: 10px;
+        }
+
         .btn {
             width: 100%;
             padding: 15px 30px;
@@ -841,17 +873,24 @@
                 <input type="text" id="player-name" placeholder="輸入你的名稱" maxlength="10" value="">
             </div>
 
-            <div class="input-group">
-                <label for="difficulty-slider">炸彈數量: <span id="difficulty-value">--</span></label>
-                <input type="range" id="difficulty-slider" min="5" max="30" value="10" data-default="10">
-            </div>
-
-            <div class="input-group">
-                <label for="time-limit-slider">回合時間: <span id="time-limit-value">--</span> 秒</label>
-                <input type="range" id="time-limit-slider" min="10" max="60" step="10" value="30" data-default="30">
-            </div>
-
             <button class="btn btn-primary" id="create-room-btn">建立房間</button>
+
+            <!-- 進階設定 -->
+            <div class="advanced-settings-toggle" id="advanced-toggle">
+                <span>⚙️ 進階設定</span>
+                <span class="toggle-arrow">▼</span>
+            </div>
+            <div class="advanced-settings" id="advanced-settings" style="display: none;">
+                <div class="input-group">
+                    <label for="difficulty-slider">炸彈數量: <span id="difficulty-value">--</span></label>
+                    <input type="range" id="difficulty-slider" min="5" max="30" value="10" data-default="10">
+                </div>
+
+                <div class="input-group">
+                    <label for="time-limit-slider">回合時間: <span id="time-limit-value">--</span> 秒</label>
+                    <input type="range" id="time-limit-slider" min="10" max="60" step="10" value="30" data-default="30">
+                </div>
+            </div>
 
             <div class="divider">
                 <span>或</span>
