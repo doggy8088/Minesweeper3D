@@ -793,11 +793,12 @@ class GameUI {
             opponentName: document.getElementById('opponent-name'),
             turnIndicator: document.getElementById('turn-indicator'),
             passTurnBtn: document.getElementById('pass-turn-btn'),
-            mineCount: document.getElementById('mine-count'),
             flagCounter: document.getElementById('flag-counter'),
             matchStatsDisplay: document.getElementById('match-stats-display'),
             myWins: document.getElementById('my-wins'),
             opponentWins: document.getElementById('opponent-wins'),
+            myCard: document.getElementById('my-card'),
+            opponentCard: document.getElementById('opponent-card'),
 
             // 遊戲結束
             gameResult: document.getElementById('game-result'),
@@ -917,6 +918,14 @@ class GameUI {
         if (this.elements.turnIndicator) {
             this.elements.turnIndicator.textContent = isMyTurn ? '你的回合' : `${playerName} 的回合`;
             this.elements.turnIndicator.className = isMyTurn ? 'turn-indicator my-turn' : 'turn-indicator opponent-turn';
+        }
+
+        // 更新玩家卡片的 active 狀態
+        if (this.elements.myCard) {
+            this.elements.myCard.classList.toggle('active', isMyTurn);
+        }
+        if (this.elements.opponentCard) {
+            this.elements.opponentCard.classList.toggle('active', !isMyTurn);
         }
     }
 

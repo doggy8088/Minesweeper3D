@@ -216,110 +216,59 @@
         /* ==================== 遊戲 UI ==================== */
         #game-screen {
             display: none;
+            position: relative;
+            width: 100%;
+            height: 100vh;
         }
 
-        #ui-container {
+        /* ==================== 頂部狀態列 ==================== */
+        #top-bar {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px 20px;
-            border-radius: 15px;
-            border: 3px solid #FFCB05;
-            pointer-events: none;
-            min-width: 200px;
-        }
-
-        #ui-container h1 {
-            margin: 0 0 10px 0;
-            font-size: 20px;
-            color: #FFCB05;
-            text-shadow: 2px 2px #3B4CCA;
-        }
-
-        .match-stats-row {
-            text-align: center;
-            margin-bottom: 12px;
-            padding: 6px 12px;
-            background: rgba(76, 175, 80, 0.3);
-            border-radius: 15px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-
-        .player-info {
+            top: 0;
+            left: 0;
+            right: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            padding: 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            gap: 10px;
-        }
-
-        .player-info.my-turn {
-            background: rgba(76, 175, 80, 0.3);
-            border: 1px solid #4CAF50;
-        }
-
-        .player-name {
-            font-weight: bold;
-        }
-
-        .player-wins {
-            color: #FF9800;
-            font-weight: bold;
-        }
-
-        .player-score {
-            color: #FFCB05;
-        }
-
-        /* ==================== 回合指示器 ==================== */
-        #turn-panel {
-            position: absolute;
-            top: 50%;
-            left: 10px;
-            transform: translateY(-50%);
+            padding: 12px 20px;
             background: rgba(0, 0, 0, 0.8);
-            padding: 15px 20px;
-            border-radius: 15px;
-            text-align: center;
+            backdrop-filter: blur(10px);
             z-index: 100;
-            min-width: 180px;
         }
 
-        .room-info {
+        #top-bar .room-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        #top-bar .room-badge {
+            background: linear-gradient(135deg, #FFCB05, #FFA000);
+            color: #3B4CCA;
+            padding: 5px 12px;
+            border-radius: 20px;
             font-size: 12px;
-            color: #aaa;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: bold;
         }
 
-        .room-info .room-code-label {
-            color: #FFCB05;
-            font-weight: bold;
+        #top-bar .room-code-display {
+            font-family: monospace;
             font-size: 14px;
-            letter-spacing: 2px;
+            color: #FFCB05;
             cursor: pointer;
             transition: color 0.2s;
         }
 
-        .room-info .room-code-label:hover {
+        #top-bar .room-code-display:hover {
             color: #fff;
         }
 
-        .room-info .room-code-label.copied {
-            color: #4CAF50;
-        }
-
-        .btn-copy-spectate {
-            margin-top: 8px;
-            padding: 6px 12px;
+        #top-bar .btn-copy-link {
+            padding: 5px 12px;
             font-size: 11px;
             background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             color: white;
@@ -327,41 +276,157 @@
             border-radius: 15px;
             cursor: pointer;
             transition: all 0.2s;
-            pointer-events: auto;
         }
 
-        .btn-copy-spectate:hover {
+        #top-bar .btn-copy-link:hover {
             transform: scale(1.05);
         }
 
-        .btn-copy-spectate.copied {
-            background: #4CAF50;
+        #top-bar .game-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #top-bar .spectator-count {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        #top-bar .match-stats {
+            background: rgba(76, 175, 80, 0.3);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        /* ==================== 左側玩家資訊面板 ==================== */
+        #players-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .player-card {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            border-radius: 12px;
+            min-width: 160px;
+            text-align: center;
+            color: white;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .player-card.me {
+            border-color: #FFCB05;
+        }
+
+        .player-card.opponent {
+            border-color: #FF5722;
+        }
+
+        .player-card.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+            border-color: #4CAF50;
+        }
+
+        .player-card .player-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .player-card .player-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .player-card .player-stats {
+            display: flex;
+            justify-content: space-around;
+            font-size: 13px;
+        }
+
+        .player-card .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-card .stat-value {
+            font-weight: bold;
+            color: #FFCB05;
+        }
+
+        .player-card .stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+
+        .vs-badge {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* ==================== 回合指示器 ==================== */
+        #turn-panel {
+            position: absolute;
+            top: 370px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            border-radius: 12px;
+            text-align: center;
+            z-index: 100;
+            min-width: 160px;
         }
 
         .turn-indicator {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
         }
 
         .turn-indicator.my-turn {
             color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
         }
 
         .turn-indicator.opponent-turn {
             color: #FF9800;
+            background: rgba(255, 152, 0, 0.2);
         }
 
         .timer-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .timer-label {
-            color: #aaa;
-            font-size: 14px;
+            color: #888;
+            font-size: 12px;
         }
 
         #timer-display {
@@ -383,12 +448,11 @@
 
         /* ==================== 旗子計數器 ==================== */
         #flag-counter {
-            margin-top: 10px;
             padding: 8px 15px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
             color: #FF5722;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
         }
 
@@ -424,44 +488,6 @@
             background: #888;
             cursor: not-allowed;
             box-shadow: none;
-        }
-
-        /* ==================== 對手資訊面板 ==================== */
-        #opponent-panel {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px 20px;
-            border-radius: 15px;
-            border: 3px solid #FF5722;
-            pointer-events: none;
-            min-width: 150px;
-            text-align: center;
-        }
-
-        #opponent-panel h3 {
-            margin: 0 0 10px 0;
-            color: #FF5722;
-            font-size: 14px;
-        }
-
-        #opponent-panel .name {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        #opponent-panel .wins {
-            font-size: 14px;
-            color: #FF9800;
-            margin-bottom: 5px;
-        }
-
-        #opponent-panel .score {
-            font-size: 24px;
-            color: #FFCB05;
         }
 
         /* ==================== 遊戲結束畫面 ==================== */
@@ -606,24 +632,20 @@
         /* ==================== 彈幕側邊欄 ==================== */
         #chat-sidebar {
             position: fixed;
-            top: 220px;
-            right: 10px;
-            width: 280px;
-            max-height: calc(100% - 240px);
-            background: rgba(0, 0, 0, 0.85);
-            border-radius: 15px;
+            top: 60px;
+            right: 0;
+            width: 300px;
+            height: calc(100% - 60px);
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             z-index: 200;
-            transition: opacity 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: default;
+            transition: transform 0.3s ease;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         #chat-sidebar.chat-collapsed {
-            transform: translateX(320px);
-            opacity: 0;
-            pointer-events: none;
+            transform: translateX(100%);
         }
 
         .chat-header {
@@ -662,7 +684,6 @@
             flex: 1;
             overflow-y: auto;
             padding: 10px;
-            max-height: 300px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -765,10 +786,10 @@
         /* ==================== 開啟聊天按鈕 ==================== */
         .btn-floating-chat {
             position: fixed;
-            top: 190px;
+            top: 70px;
             right: 10px;
             padding: 10px 15px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 25px;
@@ -853,47 +874,61 @@
 
     <!-- 遊戲畫面 -->
     <div id="game-screen">
-        <!-- 左側玩家資訊 -->
-        <div id="ui-container">
-            <h1>💣 踩炸彈對戰</h1>
-            <div class="match-stats-row">
-                <span id="match-stats-display">第 1 局</span>
+        <!-- 頂部狀態列 -->
+        <div id="top-bar">
+            <div class="room-info">
+                <span class="room-badge">🎮 對戰中</span>
+                <span class="room-code-display" id="game-room-code" title="點擊複製">------</span>
+                <button class="btn-copy-link" id="game-copy-spectate-btn">🔗 複製連結</button>
             </div>
-            <div class="player-info" id="my-info">
-                <span class="player-name">👤 <span id="my-name">我</span></span>
-                <span class="player-wins">🏆 <span id="my-wins">0</span></span>
-                <span class="player-score">分數: <span id="my-score">0</span></span>
+            <div class="game-status">
+                <span class="match-stats" id="match-stats-display">第 1 局</span>
+                <span class="spectator-count">👁️ <span id="spectator-count">0</span> 人觀戰</span>
             </div>
-            <p style="margin: 10px 0; font-size: 14px;">
-                炸彈數量: <span id="mine-count">10</span>
-            </p>
+        </div>
+
+        <!-- 左側玩家資訊面板 -->
+        <div id="players-panel">
+            <div class="player-card me" id="my-card">
+                <div class="player-label">👤 我</div>
+                <div class="player-name" id="my-name">玩家</div>
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="my-wins">0</span>
+                        <span class="stat-label">勝場</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="my-score">0</span>
+                        <span class="stat-label">分數</span>
+                    </div>
+                </div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="player-card opponent" id="opponent-card">
+                <div class="player-label">👥 對手</div>
+                <div class="player-name" id="opponent-name">對手</div>
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="opponent-wins">0</span>
+                        <span class="stat-label">勝場</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="opponent-score">0</span>
+                        <span class="stat-label">分數</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 回合指示器 -->
         <div id="turn-panel">
-            <div class="room-info">
-                房間 <span class="room-code-label" id="game-room-code" title="點擊複製房間代碼">------</span>
-                <br>
-                <button id="game-copy-spectate-btn" class="btn-copy-spectate">🔗 複製房間連結</button>
-            </div>
             <div class="turn-indicator my-turn" id="turn-indicator">你的回合</div>
             <div class="timer-container">
-                <span class="timer-label">剩餘時間</span>
+                <span class="timer-label">剩餘</span>
                 <span id="timer-display">30</span>
                 <span class="timer-label">秒</span>
             </div>
             <div id="flag-counter">🚩 0 / 10</div>
-        </div>
-
-        <!-- 對手資訊 -->
-        <div id="opponent-panel">
-            <h3>👥 對手</h3>
-            <div class="name" id="opponent-name">對手</div>
-            <div class="wins">🏆 勝場: <span id="opponent-wins">0</span></div>
-            <div class="score">分數: <span id="opponent-score">0</span></div>
-            <div class="spectator-info" id="spectator-info" style="margin-top: 10px; font-size: 12px; color: #aaa;">
-                👁️ 觀戰: <span id="spectator-count">0</span>
-            </div>
         </div>
 
         <!-- 彈幕側邊欄 -->
