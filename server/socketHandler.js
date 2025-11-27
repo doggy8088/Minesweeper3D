@@ -31,7 +31,14 @@ export function setupSocketHandlers(io, adminNamespace) {
         socket.on('create_room', (data) => {
             const { playerName, settings } = data;
 
-            const room = roomManager.createRoom(socket.id, playerName, settings);
+            // 驗證玩家名稱
+            const trimmedName = (playerName || '').trim();
+            if (!trimmedName) {
+                socket.emit('error', { error: '請輸入你的名稱' });
+                return;
+            }
+
+            const room = roomManager.createRoom(socket.id, trimmedName, settings);
 
             // 加入 Socket.IO 房間
             socket.join(room.code);
@@ -60,6 +67,13 @@ export function setupSocketHandlers(io, adminNamespace) {
         socket.on('join_room', (data) => {
             const { roomCode, playerName } = data;
 
+            // 驗證玩家名稱
+            const trimmedName = (playerName || '').trim();
+            if (!trimmedName) {
+                socket.emit('join_error', { error: '請輸入你的名稱' });
+                return;
+            }
+
             // 先檢查房間是否存在
             const room = roomManager.getRoomByCode(roomCode);
             if (!room) {
@@ -82,7 +96,7 @@ export function setupSocketHandlers(io, adminNamespace) {
                 return;
             }
 
-            const result = roomManager.joinRoom(roomCode, socket.id, playerName);
+            const result = roomManager.joinRoom(roomCode, socket.id, trimmedName);
 
             if (!result.success) {
                 socket.emit('join_error', { error: result.error });

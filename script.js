@@ -1164,15 +1164,23 @@ class Game {
         const roomCode = urlParams.get('room');
 
         if (roomCode) {
-            // 自動填入房間代碼並嘗試加入
+            // 自動填入房間代碼
             if (this.ui.elements.roomCodeInput) {
                 this.ui.elements.roomCodeInput.value = roomCode.toUpperCase();
             }
-            // 自動加入房間
+            // 檢查是否有玩家名稱
             const playerName = this.ui.getPlayerName();
-            this.client.joinRoom(roomCode, playerName);
-            // 清除 URL 參數
-            window.history.replaceState({}, document.title, window.location.pathname);
+            if (playerName) {
+                // 有名稱，自動加入房間
+                this.client.joinRoom(roomCode, playerName);
+                // 清除 URL 參數
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                // 沒有名稱，顯示選單讓用戶輸入
+                this.ui.showScreen('menuScreen');
+                // 清除 URL 參數但保留房間代碼在輸入框
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         } else {
             // 顯示選單
             this.ui.showScreen('menuScreen');
@@ -1300,6 +1308,11 @@ class Game {
         // 建立房間
         this.ui.elements.createRoomBtn?.addEventListener('click', () => {
             const playerName = this.ui.getPlayerName();
+            if (!playerName) {
+                this.ui.showError('請輸入你的名稱');
+                this.ui.elements.playerNameInput?.focus();
+                return;
+            }
             const minesCount = this.ui.getMinesCount();
             const turnTimeLimit = this.ui.getTurnTimeLimit();
             this.client.createRoom(playerName, { minesCount, turnTimeLimit });
@@ -1308,8 +1321,13 @@ class Game {
         // 加入房間
         this.ui.elements.joinRoomBtn?.addEventListener('click', () => {
             const playerName = this.ui.getPlayerName();
-            const roomCode = this.ui.getRoomCode();
+            if (!playerName) {
+                this.ui.showError('請輸入你的名稱');
+                this.ui.elements.playerNameInput?.focus();
+                return;
+            }
 
+            const roomCode = this.ui.getRoomCode();
             if (!roomCode) {
                 this.ui.showError('請輸入房間代碼');
                 return;

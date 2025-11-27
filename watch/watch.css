@@ -332,15 +332,15 @@ body {
 /* 回合指示器 */
 #turn-panel {
     position: absolute;
-    top: 80px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 360px;
+    left: 20px;
     background: rgba(0, 0, 0, 0.8);
-    padding: 15px 30px;
-    border-radius: 50px;
+    padding: 15px 20px;
+    border-radius: 12px;
     text-align: center;
     z-index: 100;
     color: white;
+    min-width: 150px;
 }
 
 .turn-indicator {
@@ -562,7 +562,14 @@ body {
 #game-over-message {
     font-size: 16px;
     color: #666;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
+}
+
+.waiting-next-game {
+    font-size: 14px;
+    color: #4CAF50;
+    margin-bottom: 20px;
+    font-weight: 500;
 }
 
 /* RWD 響應式設計 */
@@ -593,7 +600,10 @@ body {
     }
 
     #turn-panel {
-        top: 70px;
+        top: auto;
+        bottom: 56%;
+        left: 50%;
+        transform: translateX(-50%);
         padding: 10px 20px;
     }
 }

@@ -112,12 +112,13 @@
         <!-- 展開聊天按鈕 (聊天關閉時顯示) -->
         <button id="open-chat-btn" class="btn-floating hidden" title="開啟留言區">💬</button>
 
-        <!-- 遊戲結束覆蓋層 -->
+        <!-- 遊戲結束提示 -->
         <div id="game-over-overlay" class="hidden">
             <div class="game-over-content">
                 <h2 id="game-over-result">遊戲結束</h2>
                 <p id="game-over-message"></p>
-                <button class="btn btn-primary" onclick="location.href='/'">返回首頁</button>
+                <p class="waiting-next-game">等待下一局開始...</p>
+                <button class="btn btn-secondary" id="close-game-over-btn">關閉</button>
             </div>
         </div>
     </div>

@@ -474,9 +474,11 @@ class AdminClient {
                     <td>${playDuration}</td>
                     <td>${room.spectatorCount}</td>
                     <td>
+                        <button class="btn btn-copy-link" onclick="adminClient.copyRoomLink('${room.code}', this)" title="複製房間連結">🔗</button>
                         ${canSpectate
-                            ? `<button class="btn btn-spectate" onclick="adminClient.startSpectate('${room.code}')">👁️ 觀戰</button>`
-                            : '<span style="color:#666">-</span>'
+                            ? `<button class="btn btn-spectate" onclick="adminClient.startSpectate('${room.code}')">👁️ 後台觀戰</button>
+                               <button class="btn btn-spectate-public" onclick="window.open('/watch?room=${room.code}', '_blank')">🎮 前台觀戰</button>`
+                            : ''
                         }
                     </td>
                 </tr>
@@ -493,6 +495,21 @@ class AdminClient {
     startSpectate(roomCode) {
         this.currentSpectateRoom = roomCode;
         this.socket.emit('admin_spectate', { roomCode });
+    }
+
+    copyRoomLink(roomCode, btn) {
+        const roomUrl = `${window.location.origin}/?room=${roomCode}`;
+        navigator.clipboard.writeText(roomUrl).then(() => {
+            // 簡單提示
+            const originalText = btn.textContent;
+            btn.textContent = '✓';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 1500);
+        }).catch(() => {
+            // 備用方案
+            prompt('請手動複製房間連結:', roomUrl);
+        });
     }
 
     onSpectateJoined(data) {

@@ -62,6 +62,32 @@ body {
     box-shadow: 0 2px 8px rgba(56, 239, 125, 0.4);
 }
 
+.btn-spectate-public {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 6px 12px;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.btn-spectate-public:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+.btn-copy-link {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+    padding: 6px 10px;
+    font-size: 12px;
+    margin-right: 5px;
+}
+
+.btn-copy-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(245, 87, 108, 0.4);
+}
+
 /* 登入畫面 */
 #login-screen {
     display: flex;

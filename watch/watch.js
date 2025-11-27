@@ -47,15 +47,17 @@ class WatchRenderer {
         this.scene.background = new THREE.Color(0x87CEEB);
         this.scene.fog = new THREE.Fog(0x87CEEB, 20, 60);
 
-        // 相機
+        // 相機 - 使用視窗尺寸作為預設值（容器可能還是 hidden）
         const rect = container.getBoundingClientRect();
-        this.camera = new THREE.PerspectiveCamera(45, rect.width / rect.height, 0.1, 1000);
+        const width = rect.width || window.innerWidth;
+        const height = rect.height || window.innerHeight;
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
         this.camera.position.set(0, 25, 20);
         this.camera.lookAt(0, 0, 0);
 
         // 渲染器
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setSize(rect.width, rect.height);
+        this.renderer.setSize(width, height);
         this.renderer.shadowMap.enabled = true;
         container.appendChild(this.renderer.domElement);
 
@@ -97,9 +99,15 @@ class WatchRenderer {
     onWindowResize() {
         const container = document.getElementById('game-canvas-container');
         const rect = container.getBoundingClientRect();
-        this.camera.aspect = rect.width / rect.height;
+        const width = rect.width || window.innerWidth;
+        const height = rect.height || window.innerHeight;
+        
+        // 避免除以零
+        if (width === 0 || height === 0) return;
+        
+        this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(rect.width, rect.height);
+        this.renderer.setSize(width, height);
     }
 
     animate() {
@@ -568,11 +576,16 @@ class WatchController {
             sendMessageBtn: document.getElementById('send-message-btn'),
             gameOverOverlay: document.getElementById('game-over-overlay'),
             gameOverResult: document.getElementById('game-over-result'),
-            gameOverMessage: document.getElementById('game-over-message')
+            gameOverMessage: document.getElementById('game-over-message'),
+            closeGameOverBtn: document.getElementById('close-game-over-btn')
         };
     }
 
     bindUIEvents() {
+        // 關閉遊戲結束提示
+        this.elements.closeGameOverBtn?.addEventListener('click', () => {
+            this.elements.gameOverOverlay.classList.add('hidden');
+        });
         // 切換聊天側邊欄
         this.elements.toggleChatBtn?.addEventListener('click', () => {
             this.toggleChat(false);
@@ -593,10 +606,19 @@ class WatchController {
             }
         });
 
-        // 暱稱變更
+        // 暱稱變更 - 同時儲存到 localStorage
         this.elements.nicknameInput?.addEventListener('input', (e) => {
-            this.client.setNickname(e.target.value);
+            const nickname = e.target.value;
+            this.client.setNickname(nickname);
+            localStorage.setItem('spectatorNickname', nickname.trim());
         });
+
+        // 從 localStorage 載入暱稱
+        const savedNickname = localStorage.getItem('spectatorNickname');
+        if (savedNickname && this.elements.nicknameInput) {
+            this.elements.nicknameInput.value = savedNickname;
+            this.client.setNickname(savedNickname);
+        }
     }
 
     setupClientEventHandlers() {
@@ -637,6 +659,9 @@ class WatchController {
         // 遊戲開始
         this.client.onGameStart = async (data) => {
             console.log('遊戲開始:', data);
+
+            // 隱藏遊戲結束提示（如果有的話）
+            this.elements.gameOverOverlay.classList.add('hidden');
 
             // 如果之前在等待畫面，切換到觀戰畫面
             this.showSpectateScreen();
@@ -711,14 +736,14 @@ class WatchController {
         // 遊戲結束
         this.client.onGameOver = (data) => {
             this.gameActive = false;
-            this.elements.gameStatusText.textContent = '遊戲結束';
+            this.elements.gameStatusText.textContent = '等待下一局';
 
             // 顯示所有地雷
             if (data.allMines) {
                 this.renderer.showAllMines(data.allMines);
             }
 
-            // 顯示結果
+            // 顯示結果提示
             setTimeout(() => {
                 const winnerName = data.winner === 'host' ? this.hostName : this.guestName;
                 this.elements.gameOverResult.textContent = `🎉 ${winnerName} 獲勝！`;
@@ -886,6 +911,17 @@ class WatchController {
         this.elements.errorScreen.classList.add('hidden');
         this.elements.waitingScreen?.classList.add('hidden');
         this.elements.spectateScreen.classList.remove('hidden');
+
+        // 多次延遲觸發 resize 確保渲染器尺寸正確
+        const triggerResize = () => {
+            if (this.renderer.renderer) {
+                this.renderer.onWindowResize();
+            }
+        };
+        // 立即、100ms、300ms 後各觸發一次
+        requestAnimationFrame(triggerResize);
+        setTimeout(triggerResize, 100);
+        setTimeout(triggerResize, 300);
     }
 
     showWaitingScreen() {
