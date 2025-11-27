@@ -221,6 +221,15 @@
             height: 100vh;
         }
 
+        #game-canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
         /* ==================== 頂部狀態列 ==================== */
         #top-bar {
             position: absolute;
@@ -874,6 +883,9 @@
 
     <!-- 遊戲畫面 -->
     <div id="game-screen">
+        <!-- 3D 遊戲畫布容器 -->
+        <div id="game-canvas-container"></div>
+
         <!-- 頂部狀態列 -->
         <div id="top-bar">
             <div class="room-info">

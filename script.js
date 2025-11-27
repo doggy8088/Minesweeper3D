@@ -74,7 +74,14 @@ class GameRenderer {
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
-        document.body.appendChild(this.renderer.domElement);
+
+        // 將 canvas 附加到容器
+        const container = document.getElementById('game-canvas-container');
+        if (container) {
+            container.appendChild(this.renderer.domElement);
+        } else {
+            document.body.appendChild(this.renderer.domElement);
+        }
 
         // 燈光
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
