@@ -90,9 +90,12 @@ export function setupSocketHandlers(io, adminNamespace) {
                 return;
             }
 
-            // 若遊戲已結束
+            // 若遊戲已結束，也引導用戶進入觀戰模式（等待下一局）
             if (room.gameState === 'finished') {
-                socket.emit('join_error', { error: '遊戲已結束' });
+                socket.emit('redirect_to_spectate', { 
+                    roomCode: room.code,
+                    message: '遊戲已結束，將為您開啟觀戰模式等待下一局'
+                });
                 return;
             }
 
