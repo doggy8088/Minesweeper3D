@@ -1,0 +1,477 @@
+/**
+ * 遊戲邏輯引擎
+ * 負責遊戲狀態管理、回合邏輯、勝負判定
+ */
+import { CONFIG } from './config.js';
+
+export class GameEngine {
+    /**
+     * @param {object} settings - 遊戲設定
+     * @param {function} onTimerUpdate - 計時器更新回調
+     * @param {function} onTurnTimeout - 回合超時回調
+     */
+    constructor(settings, onTimerUpdate, onTurnTimeout) {
+        this.gridSize = settings.gridSize || CONFIG.GRID_SIZE;
+        this.minesCount = settings.minesCount || CONFIG.DEFAULT_MINES_COUNT;
+        this.turnTimeLimit = settings.turnTimeLimit || CONFIG.TURN_TIME_LIMIT;
+
+        this.grid = [];
+        this.currentPlayer = 'host'; // 'host' 或 'guest'
+        this.revealsThisTurn = 0; // 本回合揭開的格子數
+        this.totalRevealed = 0; // 總共揭開的格子數
+        this.gameStatus = 'waiting'; // waiting, playing, finished
+        this.winner = null;
+        this.lastPassedBy = null; // 記錄最後傳遞回合的玩家
+
+        // 計時器
+        this.turnTimer = null;
+        this.timeRemaining = this.turnTimeLimit;
+        this.onTimerUpdate = onTimerUpdate;
+        this.onTurnTimeout = onTurnTimeout;
+
+        // 玩家分數
+        this.scores = {
+            host: 0,
+            guest: 0
+        };
+    }
+
+    /**
+     * 生成遊戲網格
+     */
+    generateGrid() {
+        // 初始化網格
+        this.grid = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            this.grid[x] = [];
+            for (let z = 0; z < this.gridSize; z++) {
+                this.grid[x][z] = {
+                    x,
+                    z,
+                    isMine: false,
+                    isRevealed: false,
+                    neighborMines: 0
+                };
+            }
+        }
+
+        // 佈置地雷
+        let placedMines = 0;
+        while (placedMines < this.minesCount) {
+            const x = Math.floor(Math.random() * this.gridSize);
+            const z = Math.floor(Math.random() * this.gridSize);
+            if (!this.grid[x][z].isMine) {
+                this.grid[x][z].isMine = true;
+                placedMines++;
+            }
+        }
+
+        // 計算鄰居地雷數
+        for (let x = 0; x < this.gridSize; x++) {
+            for (let z = 0; z < this.gridSize; z++) {
+                if (!this.grid[x][z].isMine) {
+                    this.grid[x][z].neighborMines = this.countNeighborMines(x, z);
+                }
+            }
+        }
+
+        this.gameStatus = 'playing';
+        this.currentPlayer = 'host';
+        this.revealsThisTurn = 0;
+        this.totalRevealed = 0;
+
+        console.log(`[GameEngine] 網格已生成: ${this.gridSize}x${this.gridSize}, 地雷數: ${this.minesCount}`);
+
+        return this.getClientGrid();
+    }
+
+    /**
+     * 計算指定位置周圍的地雷數
+     */
+    countNeighborMines(x, z) {
+        let count = 0;
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                if (dx === 0 && dz === 0) continue;
+                const nx = x + dx;
+                const nz = z + dz;
+                if (nx >= 0 && nx < this.gridSize && nz >= 0 && nz < this.gridSize) {
+                    if (this.grid[nx][nz].isMine) count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 揭開格子
+     * @param {number} x - X 座標
+     * @param {number} z - Z 座標
+     * @param {string} player - 執行操作的玩家 ('host' 或 'guest')
+     * @returns {object} 操作結果
+     */
+    revealTile(x, z, player) {
+        // 驗證遊戲狀態
+        if (this.gameStatus !== 'playing') {
+            return { success: false, error: '遊戲未進行中' };
+        }
+
+        // 驗證是否輪到該玩家
+        if (player !== this.currentPlayer) {
+            return { success: false, error: '不是你的回合' };
+        }
+
+        // 驗證座標
+        if (x < 0 || x >= this.gridSize || z < 0 || z >= this.gridSize) {
+            return { success: false, error: '無效的座標' };
+        }
+
+        const tile = this.grid[x][z];
+
+        // 檢查是否已揭開
+        if (tile.isRevealed) {
+            return { success: false, error: '該格子已揭開' };
+        }
+
+        // 執行揭開
+        const revealedTiles = this.doReveal(x, z);
+        this.revealsThisTurn += revealedTiles.length;
+        this.totalRevealed += revealedTiles.length;
+
+        // 計分（每揭開一格 +10 分）
+        this.scores[player] += revealedTiles.length * 10;
+
+        // 檢查是否踩到地雷
+        if (tile.isMine) {
+            this.gameStatus = 'finished';
+            this.winner = player === 'host' ? 'guest' : 'host';
+            this.stopTimer();
+
+            return {
+                success: true,
+                hitMine: true,
+                revealedTiles,
+                gameOver: true,
+                winner: this.winner,
+                loser: player,
+                scores: this.scores,
+                allMines: this.getAllMines()
+            };
+        }
+
+        // 檢查是否所有安全格都已揭開（勝利條件）
+        const winCheck = this.checkWinCondition();
+        if (winCheck.isWin) {
+            this.gameStatus = 'finished';
+            this.winner = this.lastPassedBy || player;
+            this.stopTimer();
+
+            return {
+                success: true,
+                hitMine: false,
+                revealedTiles,
+                gameOver: true,
+                winner: this.winner,
+                reason: 'all_safe_revealed',
+                scores: this.scores
+            };
+        }
+
+        // 重置計時器
+        this.resetTimer();
+
+        return {
+            success: true,
+            hitMine: false,
+            revealedTiles,
+            gameOver: false,
+            canPass: this.revealsThisTurn >= CONFIG.MIN_REVEALS_TO_PASS,
+            revealsThisTurn: this.revealsThisTurn,
+            scores: this.scores
+        };
+    }
+
+    /**
+     * 執行揭開操作（包含自動展開）
+     */
+    doReveal(x, z) {
+        const tile = this.grid[x][z];
+        if (tile.isRevealed) return [];
+
+        tile.isRevealed = true;
+        const revealedTiles = [{
+            x,
+            z,
+            isMine: tile.isMine,
+            neighborMines: tile.neighborMines
+        }];
+
+        // 如果是 0，自動展開周圍
+        if (!tile.isMine && tile.neighborMines === 0) {
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    if (dx === 0 && dz === 0) continue;
+                    const nx = x + dx;
+                    const nz = z + dz;
+                    if (nx >= 0 && nx < this.gridSize && nz >= 0 && nz < this.gridSize) {
+                        const neighborRevealed = this.doReveal(nx, nz);
+                        revealedTiles.push(...neighborRevealed);
+                    }
+                }
+            }
+        }
+
+        return revealedTiles;
+    }
+
+    /**
+     * 傳遞回合
+     * @param {string} player - 執行操作的玩家
+     * @returns {object} 操作結果
+     */
+    passTurn(player) {
+        if (this.gameStatus !== 'playing') {
+            return { success: false, error: '遊戲未進行中' };
+        }
+
+        if (player !== this.currentPlayer) {
+            return { success: false, error: '不是你的回合' };
+        }
+
+        if (this.revealsThisTurn < CONFIG.MIN_REVEALS_TO_PASS) {
+            return {
+                success: false,
+                error: `需要至少揭開 ${CONFIG.MIN_REVEALS_TO_PASS} 格才能傳遞回合`
+            };
+        }
+
+        // 記錄傳遞者
+        this.lastPassedBy = player;
+
+        // 切換玩家
+        this.currentPlayer = player === 'host' ? 'guest' : 'host';
+        this.revealsThisTurn = 0;
+
+        // 重置計時器
+        this.resetTimer();
+
+        console.log(`[GameEngine] 回合傳遞: ${player} -> ${this.currentPlayer}`);
+
+        return {
+            success: true,
+            nextPlayer: this.currentPlayer,
+            scores: this.scores
+        };
+    }
+
+    /**
+     * 檢查勝利條件
+     */
+    checkWinCondition() {
+        const totalTiles = this.gridSize * this.gridSize;
+        const safeTiles = totalTiles - this.minesCount;
+
+        if (this.totalRevealed >= safeTiles) {
+            return { isWin: true };
+        }
+
+        return { isWin: false };
+    }
+
+    /**
+     * 取得所有安全且未揭開的格子
+     */
+    getSafeTiles() {
+        const safeTiles = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            for (let z = 0; z < this.gridSize; z++) {
+                const tile = this.grid[x][z];
+                if (!tile.isMine && !tile.isRevealed) {
+                    safeTiles.push({ x, z });
+                }
+            }
+        }
+        return safeTiles;
+    }
+
+    /**
+     * 取得所有未揭開的格子
+     */
+    getUnrevealedTiles() {
+        const tiles = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            for (let z = 0; z < this.gridSize; z++) {
+                if (!this.grid[x][z].isRevealed) {
+                    tiles.push({ x, z, isMine: this.grid[x][z].isMine });
+                }
+            }
+        }
+        return tiles;
+    }
+
+    /**
+     * 取得所有地雷位置
+     */
+    getAllMines() {
+        const mines = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            for (let z = 0; z < this.gridSize; z++) {
+                if (this.grid[x][z].isMine) {
+                    mines.push({ x, z });
+                }
+            }
+        }
+        return mines;
+    }
+
+    /**
+     * 回合超時處理
+     */
+    handleTimeout() {
+        const player = this.currentPlayer;
+
+        // 找到一個安全格子隨機揭開
+        const safeTiles = this.getSafeTiles();
+
+        if (safeTiles.length > 0) {
+            // 隨機選擇一個安全格子
+            const randomTile = safeTiles[Math.floor(Math.random() * safeTiles.length)];
+            const result = this.revealTile(randomTile.x, randomTile.z, player);
+
+            // 自動傳遞回合
+            if (!result.gameOver) {
+                this.currentPlayer = player === 'host' ? 'guest' : 'host';
+                this.revealsThisTurn = 0;
+                this.lastPassedBy = player;
+                this.resetTimer();
+            }
+
+            return {
+                timeout: true,
+                autoRevealed: { x: randomTile.x, z: randomTile.z },
+                ...result,
+                nextPlayer: this.currentPlayer
+            };
+        } else {
+            // 沒有安全格子，強制揭開地雷
+            const unrevealedTiles = this.getUnrevealedTiles();
+            if (unrevealedTiles.length > 0) {
+                const randomTile = unrevealedTiles[Math.floor(Math.random() * unrevealedTiles.length)];
+                const result = this.revealTile(randomTile.x, randomTile.z, player);
+
+                return {
+                    timeout: true,
+                    autoRevealed: { x: randomTile.x, z: randomTile.z },
+                    ...result
+                };
+            }
+        }
+
+        return { timeout: true, error: '無法處理超時' };
+    }
+
+    /**
+     * 啟動回合計時器
+     */
+    startTimer() {
+        this.timeRemaining = this.turnTimeLimit;
+
+        if (this.turnTimer) {
+            clearInterval(this.turnTimer);
+        }
+
+        this.turnTimer = setInterval(() => {
+            this.timeRemaining--;
+
+            if (this.onTimerUpdate) {
+                this.onTimerUpdate(this.timeRemaining);
+            }
+
+            if (this.timeRemaining <= 0) {
+                this.stopTimer();
+                if (this.onTurnTimeout) {
+                    this.onTurnTimeout();
+                }
+            }
+        }, 1000);
+
+        console.log(`[GameEngine] 計時器啟動: ${this.turnTimeLimit}秒`);
+    }
+
+    /**
+     * 重置計時器
+     */
+    resetTimer() {
+        this.timeRemaining = this.turnTimeLimit;
+
+        if (this.onTimerUpdate) {
+            this.onTimerUpdate(this.timeRemaining);
+        }
+
+        // 如果計時器沒有運行，啟動它
+        if (!this.turnTimer) {
+            this.startTimer();
+        }
+    }
+
+    /**
+     * 停止計時器
+     */
+    stopTimer() {
+        if (this.turnTimer) {
+            clearInterval(this.turnTimer);
+            this.turnTimer = null;
+        }
+    }
+
+    /**
+     * 取得客戶端用的網格（隱藏未揭開格子的地雷資訊）
+     */
+    getClientGrid() {
+        const clientGrid = [];
+        for (let x = 0; x < this.gridSize; x++) {
+            clientGrid[x] = [];
+            for (let z = 0; z < this.gridSize; z++) {
+                const tile = this.grid[x][z];
+                clientGrid[x][z] = {
+                    x,
+                    z,
+                    isRevealed: tile.isRevealed,
+                    // 只有已揭開的格子才顯示詳細資訊
+                    isMine: tile.isRevealed ? tile.isMine : undefined,
+                    neighborMines: tile.isRevealed ? tile.neighborMines : undefined
+                };
+            }
+        }
+        return clientGrid;
+    }
+
+    /**
+     * 取得遊戲狀態
+     */
+    getGameState() {
+        return {
+            gridSize: this.gridSize,
+            minesCount: this.minesCount,
+            currentPlayer: this.currentPlayer,
+            revealsThisTurn: this.revealsThisTurn,
+            totalRevealed: this.totalRevealed,
+            gameStatus: this.gameStatus,
+            winner: this.winner,
+            timeRemaining: this.timeRemaining,
+            turnTimeLimit: this.turnTimeLimit,
+            canPass: this.revealsThisTurn >= CONFIG.MIN_REVEALS_TO_PASS,
+            scores: this.scores,
+            grid: this.getClientGrid()
+        };
+    }
+
+    /**
+     * 清理資源
+     */
+    destroy() {
+        this.stopTimer();
+    }
+}
+
+export default GameEngine;

@@ -1,0 +1,24 @@
+{
+  "name": "multiplayer-minesweeper",
+  "version": "1.0.0",
+  "description": "雙人對戰 3D 踩地雷遊戲",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "keywords": [
+    "minesweeper",
+    "multiplayer",
+    "game",
+    "socket.io"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.1"
+  }
+}
