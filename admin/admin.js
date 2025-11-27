@@ -19,6 +19,234 @@ const COLORS = {
     TEXT: 0x333333
 };
 
+// 圖表配色
+const CHART_COLORS = {
+    playing: '#4CAF50',
+    waiting: '#FFC107',
+    finished: '#9E9E9E',
+    playingBg: 'rgba(76, 175, 80, 0.8)',
+    waitingBg: 'rgba(255, 193, 7, 0.8)',
+    finishedBg: 'rgba(158, 158, 158, 0.8)',
+    line: '#667eea',
+    lineBg: 'rgba(102, 126, 234, 0.2)'
+};
+
+// ==========================================
+// 圖表管理類別
+// ==========================================
+class ChartManager {
+    constructor() {
+        this.roomStatusChart = null;
+        this.activityChart = null;
+        this.activityHistory = [];
+        this.maxHistoryPoints = 20;
+
+        this.initCharts();
+    }
+
+    initCharts() {
+        // 設定 Chart.js 全域樣式
+        Chart.defaults.color = '#888';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+        this.initRoomStatusChart();
+        this.initActivityChart();
+    }
+
+    initRoomStatusChart() {
+        const ctx = document.getElementById('roomStatusChart');
+        if (!ctx) return;
+
+        this.roomStatusChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['對戰中', '等待中', '已結束'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: [
+                        CHART_COLORS.playingBg,
+                        CHART_COLORS.waitingBg,
+                        CHART_COLORS.finishedBg
+                    ],
+                    borderColor: [
+                        CHART_COLORS.playing,
+                        CHART_COLORS.waiting,
+                        CHART_COLORS.finished
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 13 },
+                        padding: 12,
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${value} 間 (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    initActivityChart() {
+        const ctx = document.getElementById('activityChart');
+        if (!ctx) return;
+
+        this.activityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '總房間數',
+                        data: [],
+                        borderColor: CHART_COLORS.line,
+                        backgroundColor: CHART_COLORS.lineBg,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: '對戰中',
+                        data: [],
+                        borderColor: CHART_COLORS.playing,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15,
+                            usePointStyle: true,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 12 },
+                        padding: 10
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 0,
+                            font: { size: 10 }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: {
+                            stepSize: 1,
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    updateCharts(stats) {
+        this.updateRoomStatusChart(stats);
+        this.updateActivityChart(stats);
+    }
+
+    updateRoomStatusChart(stats) {
+        if (!this.roomStatusChart) return;
+
+        this.roomStatusChart.data.datasets[0].data = [
+            stats.playingCount,
+            stats.waitingCount,
+            stats.finishedCount
+        ];
+        this.roomStatusChart.update('none');
+    }
+
+    updateActivityChart(stats) {
+        if (!this.activityChart) return;
+
+        const now = new Date();
+        const timeLabel = now.toLocaleTimeString('zh-TW', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        // 添加新數據點
+        this.activityHistory.push({
+            time: timeLabel,
+            total: stats.totalRooms,
+            playing: stats.playingCount
+        });
+
+        // 限制歷史數據點數量
+        if (this.activityHistory.length > this.maxHistoryPoints) {
+            this.activityHistory.shift();
+        }
+
+        // 更新圖表數據
+        this.activityChart.data.labels = this.activityHistory.map(h => h.time);
+        this.activityChart.data.datasets[0].data = this.activityHistory.map(h => h.total);
+        this.activityChart.data.datasets[1].data = this.activityHistory.map(h => h.playing);
+        this.activityChart.update('none');
+    }
+
+    destroy() {
+        if (this.roomStatusChart) {
+            this.roomStatusChart.destroy();
+            this.roomStatusChart = null;
+        }
+        if (this.activityChart) {
+            this.activityChart.destroy();
+            this.activityChart = null;
+        }
+        this.activityHistory = [];
+    }
+}
+
 // ==========================================
 // 管理員客戶端類別
 // ==========================================
@@ -29,6 +257,7 @@ class AdminClient {
         this.isAuthenticated = false;
         this.currentSpectateRoom = null;
         this.spectateRenderer = null;
+        this.chartManager = null;
 
         this.init();
     }
@@ -36,6 +265,7 @@ class AdminClient {
     init() {
         this.bindEvents();
         this.checkStoredToken();
+        this.chartManager = new ChartManager();
     }
 
     bindEvents() {
@@ -194,6 +424,11 @@ class AdminClient {
         document.getElementById('playing-rooms').textContent = stats.playingCount;
         document.getElementById('waiting-rooms').textContent = stats.waitingCount;
         document.getElementById('finished-rooms').textContent = stats.finishedCount;
+
+        // 更新圖表
+        if (this.chartManager) {
+            this.chartManager.updateCharts(stats);
+        }
 
         this.updateRoomsTable(stats.rooms);
     }

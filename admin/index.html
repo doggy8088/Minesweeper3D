@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>踩地雷後台管理</title>
     <link rel="stylesheet" href="admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script type="importmap">
     {
         "imports": {
@@ -69,6 +70,22 @@
                 <div class="stat-info">
                     <span class="stat-value" id="finished-rooms">0</span>
                     <span class="stat-label">已結束</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 圖表區域 -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>房間狀態分佈</h3>
+                <div class="chart-wrapper">
+                    <canvas id="roomStatusChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>即時活動趨勢</h3>
+                <div class="chart-wrapper">
+                    <canvas id="activityChart"></canvas>
                 </div>
             </div>
         </div>
