@@ -394,6 +394,31 @@
             margin-bottom: 8px;
         }
 
+        .player-card .player-name.editable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            padding: 2px 8px;
+            border-radius: 5px;
+        }
+
+        .player-card .player-name.editable:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .player-card .player-name-input {
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #FFCB05;
+            border-radius: 5px;
+            color: white;
+            text-align: center;
+            padding: 2px 8px;
+            width: 100%;
+            max-width: 120px;
+            outline: none;
+        }
+
         .player-card .player-stats {
             display: flex;
             justify-content: space-around;
@@ -942,8 +967,8 @@
         <!-- 左側玩家資訊面板 -->
         <div id="players-panel">
             <div class="player-card me" id="my-card">
-                <div class="player-label">👤 我</div>
-                <div class="player-name" id="my-name">玩家</div>
+                <div class="player-label">👤 我 <span style="font-size: 9px; color: #aaa;">(點擊可編輯)</span></div>
+                <div class="player-name editable" id="my-name" title="點擊修改名稱">玩家</div>
                 <div class="player-stats">
                     <div class="stat-item">
                         <span class="stat-value" id="my-wins">0</span>

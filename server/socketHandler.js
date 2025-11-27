@@ -365,8 +365,7 @@ export function setupSocketHandlers(io, adminNamespace) {
             // 加入觀戰（只要房間存在就可以觀戰，包括遊戲結束後）
             roomManager.addPublicSpectator(roomCode, socket.id);
 
-            // 加入 Socket.IO 房間 (用於接收遊戲事件與彈幕)
-            socket.join(roomCode);
+            // 加入 Socket.IO 房間 (只加入觀戰專用房間，避免重複接收訊息)
             socket.join(`spectate:${roomCode}`);
 
             // 標記此 socket 為公開觀戰者
@@ -395,7 +394,6 @@ export function setupSocketHandlers(io, adminNamespace) {
             if (socket.spectateRoomCode) {
                 const roomCode = socket.spectateRoomCode;
                 roomManager.removePublicSpectator(roomCode, socket.id);
-                socket.leave(roomCode);
                 socket.leave(`spectate:${roomCode}`);
                 socket.spectateRoomCode = null;
 
@@ -446,6 +444,43 @@ export function setupSocketHandlers(io, adminNamespace) {
             broadcastToSpectators(io, roomCode, 'danmaku', danmakuData);
 
             console.log(`[Socket] 彈幕: [${safeNickname}] ${trimmedMessage} (房間: ${roomCode})`);
+        });
+
+        /**
+         * 更新玩家名稱
+         */
+        socket.on('update_player_name', ({ newName }) => {
+            if (!newName || typeof newName !== 'string') return;
+
+            const trimmedName = newName.trim().substring(0, 10);
+            if (!trimmedName) return;
+
+            const room = roomManager.getRoomBySocketId(socket.id);
+            if (!room) return;
+
+            const playerRole = roomManager.getPlayerRole(room.code, socket.id);
+            if (!playerRole) return;
+
+            // 更新房間中的玩家名稱
+            if (playerRole === 'host' && room.host) {
+                room.host.name = trimmedName;
+            } else if (playerRole === 'guest' && room.guest) {
+                room.guest.name = trimmedName;
+            }
+
+            // 廣播給房間內所有人（包括自己，以便確認更新）
+            io.to(room.code).emit('player_name_updated', {
+                role: playerRole,
+                newName: trimmedName
+            });
+
+            // 廣播給觀戰者
+            broadcastToSpectators(io, room.code, 'player_name_updated', {
+                role: playerRole,
+                newName: trimmedName
+            });
+
+            console.log(`[Socket] 玩家名稱更新: ${playerRole} -> ${trimmedName} (房間: ${room.code})`);
         });
     });
 }

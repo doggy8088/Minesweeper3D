@@ -13,6 +13,25 @@ import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 const TILE_SIZE = 2;
 const TILE_SPACING = 0.2;
 
+// 可愛動物名稱列表（用於隨機產生玩家名稱）
+const CUTE_ANIMAL_NAMES = [
+    '小柴犬', '胖橘貓', '呆萌兔', '迷你豬', '小熊貓',
+    '懶懶熊', '皮皮鴨', '乖乖羊', '笨笨鵝', '萌萌狐',
+    '圓滾滾', '毛毛蟲', '小刺蝟', '胖倉鼠', '呆頭鵝',
+    '小企鵝', '肥嘟嘟', '軟軟貓', '傻傻狗', '圓圓熊',
+    '小浣熊', '胖達達', '萌兔兔', '可愛鼠', '小海豹',
+    '糯米糰', '棉花糖', '小糰子', '肉肉球', '毛球球'
+];
+
+/**
+ * 取得隨機動物名稱
+ * @returns {string} 隨機動物名稱
+ */
+function getRandomAnimalName() {
+    const index = Math.floor(Math.random() * CUTE_ANIMAL_NAMES.length);
+    return CUTE_ANIMAL_NAMES[index];
+}
+
 // 顏色與材質
 const COLORS = {
     GRASS: 0x4CAF50,
@@ -644,6 +663,7 @@ class MultiplayerClient {
         this.onRestartRequested = null;
         this.onSpectatorCountUpdate = null;
         this.onDanmaku = null;
+        this.onPlayerNameUpdated = null;
     }
 
     connect() {
@@ -743,6 +763,11 @@ class MultiplayerClient {
         this.socket.on('danmaku', (data) => {
             if (this.onDanmaku) this.onDanmaku(data);
         });
+
+        // 玩家名稱更新
+        this.socket.on('player_name_updated', (data) => {
+            if (this.onPlayerNameUpdated) this.onPlayerNameUpdated(data);
+        });
     }
 
     createRoom(playerName, settings = {}) {
@@ -773,6 +798,11 @@ class MultiplayerClient {
 
     sendDanmaku(roomCode, message, nickname) {
         this.socket.emit('send_danmaku', { roomCode, message, nickname, isPlayer: true });
+    }
+
+    updatePlayerName(newName) {
+        this.socket.emit('update_player_name', { newName });
+        this.playerName = newName;
     }
 
     isMyTurn(currentPlayer) {
@@ -949,6 +979,14 @@ class GameUI {
     updatePlayerInfo(myName, opponentName) {
         if (this.elements.myName) this.elements.myName.textContent = myName;
         if (this.elements.opponentName) this.elements.opponentName.textContent = opponentName;
+    }
+
+    updateOpponentName(name) {
+        if (this.elements.opponentName) this.elements.opponentName.textContent = name;
+    }
+
+    updateMyName(name) {
+        if (this.elements.myName) this.elements.myName.textContent = name;
     }
 
     updateTurn(isMyTurn, playerName) {
@@ -1281,19 +1319,19 @@ class Game {
             if (this.ui.elements.roomCodeInput) {
                 this.ui.elements.roomCodeInput.value = roomCode.toUpperCase();
             }
-            // 檢查是否有玩家名稱
-            const playerName = this.ui.getPlayerName();
-            if (playerName) {
-                // 有名稱，自動加入房間
-                this.client.joinRoom(roomCode, playerName);
-                // 清除 URL 參數
-                window.history.replaceState({}, document.title, window.location.pathname);
-            } else {
-                // 沒有名稱，顯示選單讓用戶輸入
-                this.ui.showScreen('menuScreen');
-                // 清除 URL 參數但保留房間代碼在輸入框
-                window.history.replaceState({}, document.title, window.location.pathname);
+            // 檢查是否有玩家名稱（從 localStorage 載入的）
+            let playerName = this.ui.elements.playerNameInput?.value.trim();
+            if (!playerName) {
+                // 沒有名稱，隨機產生一個動物名稱並填入
+                playerName = getRandomAnimalName();
+                if (this.ui.elements.playerNameInput) {
+                    this.ui.elements.playerNameInput.value = playerName;
+                }
             }
+            // 自動加入房間
+            this.client.joinRoom(roomCode, playerName);
+            // 清除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
         } else {
             // 顯示選單
             this.ui.showScreen('menuScreen');
@@ -1404,6 +1442,16 @@ class Game {
             }
         };
 
+        // 玩家名稱更新
+        this.client.onPlayerNameUpdated = (data) => {
+            console.log('[GameController] Player name updated:', data);
+            // 更新對手名稱顯示
+            if (data.role !== this.client.playerRole) {
+                this.client.opponentName = data.newName;
+                this.ui.updateOpponentName(data.newName);
+            }
+        };
+
         // 渲染器點擊回調
         this.renderer.onTileClick = (x, z) => {
             if (this.gameActive && this.client.isMyTurn(this.currentPlayer)) {
@@ -1505,6 +1553,11 @@ class Game {
         // 遊戲畫面內的複製觀戰連結按鈕
         this.ui.elements.gameCopySpectateBtn?.addEventListener('click', () => {
             this.copySpectateLink(this.ui.elements.gameCopySpectateBtn);
+        });
+
+        // 玩家名稱點擊編輯
+        this.ui.elements.myName?.addEventListener('click', () => {
+            this.startEditingName();
         });
 
         // 彈幕側邊欄開關
@@ -1816,6 +1869,70 @@ class Game {
                 // 降級處理
                 prompt('請手動複製房間代碼:', this.roomCode);
             }
+        });
+    }
+
+    /**
+     * 開始編輯玩家名稱（Inplace Editing）
+     */
+    startEditingName() {
+        const nameElement = this.ui.elements.myName;
+        if (!nameElement || this._isEditingName) return;
+
+        this._isEditingName = true;
+        const currentName = this.client.playerName;
+
+        // 建立輸入框
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.maxLength = 10;
+        input.className = 'player-name-input';
+
+        // 儲存原始元素內容
+        const originalContent = nameElement.textContent;
+        nameElement.textContent = '';
+        nameElement.appendChild(input);
+
+        // 選中文字
+        input.focus();
+        input.select();
+
+        // 完成編輯的處理函式
+        const finishEditing = () => {
+            if (!this._isEditingName) return;
+            this._isEditingName = false;
+
+            const newName = input.value.trim();
+            nameElement.textContent = newName || originalContent;
+
+            // 如果名稱有變更，發送更新
+            if (newName && newName !== currentName) {
+                this.client.updatePlayerName(newName);
+                // 更新 localStorage
+                localStorage.setItem('playerName', newName);
+                // 更新選單輸入框
+                if (this.ui.elements.playerNameInput) {
+                    this.ui.elements.playerNameInput.value = newName;
+                }
+            }
+        };
+
+        // 監聽 Enter 和 Escape 鍵
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEditing();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this._isEditingName = false;
+                nameElement.textContent = originalContent;
+            }
+        });
+
+        // 監聽失去焦點
+        input.addEventListener('blur', () => {
+            finishEditing();
         });
     }
 }
