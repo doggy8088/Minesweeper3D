@@ -115,6 +115,9 @@ export function setupSocketHandlers(io) {
 
             // 如果遊戲結束
             if (result.gameOver) {
+                // 記錄輸家，下一局由輸家先手
+                room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
+
                 io.to(room.code).emit('game_over', {
                     winner: result.winner,
                     loser: result.loser,
@@ -225,9 +228,15 @@ export function setupSocketHandlers(io) {
  * 開始遊戲
  */
 function startGame(io, room) {
+    // 決定先手玩家（預設 host，但如果有記錄則用上一局輸家）
+    const startingPlayer = room.nextStartingPlayer || 'host';
+
     // 建立遊戲引擎
     room.game = new GameEngine(
-        room.settings,
+        {
+            ...room.settings,
+            startingPlayer: startingPlayer
+        },
         // 計時器更新回調
         (timeRemaining) => {
             io.to(room.code).emit('timer_update', { timeRemaining });
@@ -252,7 +261,7 @@ function startGame(io, room) {
         grid,
         gridSize: room.settings.gridSize,
         minesCount: room.settings.minesCount,
-        currentPlayer: 'host',
+        currentPlayer: startingPlayer,
         turnTimeLimit: room.settings.turnTimeLimit,
         timeRemaining: room.settings.turnTimeLimit,
         host: {
@@ -286,6 +295,9 @@ function handleTimeout(io, room) {
 
     // 如果遊戲結束
     if (result.gameOver) {
+        // 記錄輸家，下一局由輸家先手
+        room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
+
         io.to(room.code).emit('game_over', {
             winner: result.winner,
             loser: result.loser,

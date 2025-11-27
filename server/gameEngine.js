@@ -16,12 +16,17 @@ export class GameEngine {
         this.turnTimeLimit = settings.turnTimeLimit || CONFIG.TURN_TIME_LIMIT;
 
         this.grid = [];
-        this.currentPlayer = 'host'; // 'host' 或 'guest'
+        this.startingPlayer = settings.startingPlayer || 'host'; // 先手玩家
+        this.currentPlayer = this.startingPlayer;
         this.revealsThisTurn = 0; // 本回合揭開的格子數
         this.totalRevealed = 0; // 總共揭開的格子數
         this.gameStatus = 'waiting'; // waiting, playing, finished
         this.winner = null;
         this.lastPassedBy = null; // 記錄最後傳遞回合的玩家
+
+        // 第一次點擊相關
+        this.isFirstMove = true; // 是否為第一次點擊
+        this.minesPlaced = false; // 地雷是否已佈置
 
         // 計時器
         this.turnTimer = null;
@@ -37,10 +42,10 @@ export class GameEngine {
     }
 
     /**
-     * 生成遊戲網格
+     * 生成遊戲網格（只初始化空網格，地雷在第一次點擊後才佈置）
      */
     generateGrid() {
-        // 初始化網格
+        // 初始化空網格
         this.grid = [];
         for (let x = 0; x < this.gridSize; x++) {
             this.grid[x] = [];
@@ -55,15 +60,55 @@ export class GameEngine {
             }
         }
 
-        // 佈置地雷
+        // 地雷將在第一次點擊時佈置
+        this.minesPlaced = false;
+        this.isFirstMove = true;
+
+        this.gameStatus = 'playing';
+        this.currentPlayer = this.startingPlayer;
+        this.revealsThisTurn = 0;
+        this.totalRevealed = 0;
+
+        console.log(`[GameEngine] 空網格已生成: ${this.gridSize}x${this.gridSize}, 地雷將在第一次點擊後佈置`);
+
+        return this.getClientGrid();
+    }
+
+    /**
+     * 佈置地雷（在第一次點擊時呼叫，確保點擊位置及周圍安全）
+     * @param {number} safeX - 安全區域中心 X 座標
+     * @param {number} safeZ - 安全區域中心 Z 座標
+     */
+    placeMines(safeX, safeZ) {
+        // 建立安全區域（點擊位置及其周圍 8 格）
+        const safeZone = new Set();
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                const nx = safeX + dx;
+                const nz = safeZ + dz;
+                if (nx >= 0 && nx < this.gridSize && nz >= 0 && nz < this.gridSize) {
+                    safeZone.add(`${nx},${nz}`);
+                }
+            }
+        }
+
+        // 佈置地雷（避開安全區域）
         let placedMines = 0;
-        while (placedMines < this.minesCount) {
+        const maxAttempts = this.gridSize * this.gridSize * 10;
+        let attempts = 0;
+
+        while (placedMines < this.minesCount && attempts < maxAttempts) {
             const x = Math.floor(Math.random() * this.gridSize);
             const z = Math.floor(Math.random() * this.gridSize);
-            if (!this.grid[x][z].isMine) {
-                this.grid[x][z].isMine = true;
-                placedMines++;
+            attempts++;
+
+            // 跳過安全區域和已有地雷的格子
+            if (safeZone.has(`${x},${z}`) || this.grid[x][z].isMine) {
+                continue;
             }
+
+            this.grid[x][z].isMine = true;
+            placedMines++;
         }
 
         // 計算鄰居地雷數
@@ -75,14 +120,8 @@ export class GameEngine {
             }
         }
 
-        this.gameStatus = 'playing';
-        this.currentPlayer = 'host';
-        this.revealsThisTurn = 0;
-        this.totalRevealed = 0;
-
-        console.log(`[GameEngine] 網格已生成: ${this.gridSize}x${this.gridSize}, 地雷數: ${this.minesCount}`);
-
-        return this.getClientGrid();
+        this.minesPlaced = true;
+        console.log(`[GameEngine] 地雷已佈置: ${placedMines} 顆，安全區域中心: (${safeX}, ${safeZ})`);
     }
 
     /**
@@ -133,15 +172,28 @@ export class GameEngine {
             return { success: false, error: '該格子已揭開' };
         }
 
+        // 第一次點擊時佈置地雷（確保點擊位置及周圍安全）
+        const isFirstMove = this.isFirstMove;
+        if (!this.minesPlaced) {
+            this.placeMines(x, z);
+        }
+
         // 執行揭開
         const revealedTiles = this.doReveal(x, z);
         this.revealsThisTurn += revealedTiles.length;
         this.totalRevealed += revealedTiles.length;
 
-        // 計分（每揭開一格 +10 分）
-        this.scores[player] += revealedTiles.length * 10;
+        // 計分：第一下開局的格子不計分
+        if (!isFirstMove) {
+            this.scores[player] += revealedTiles.length * 10;
+        }
 
-        // 檢查是否踩到地雷
+        // 標記第一次移動已完成
+        if (this.isFirstMove) {
+            this.isFirstMove = false;
+        }
+
+        // 檢查是否踩到地雷（第一下不可能踩到）
         if (tile.isMine) {
             this.gameStatus = 'finished';
             this.winner = player === 'host' ? 'guest' : 'host';
