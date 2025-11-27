@@ -216,8 +216,8 @@ export class GameEngine {
         const winCheck = this.checkWinCondition();
         if (winCheck.isWin) {
             this.gameStatus = 'finished';
-            // 揭開最後一個安全格的玩家獲勝
-            this.winner = player;
+            // 最後傳遞回合的玩家獲勝；若無人傳遞過（只有第一回合就全部揭開），則當前玩家獲勝
+            this.winner = this.lastPassedBy || player;
             this.stopTimer();
 
             return {
