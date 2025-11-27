@@ -793,6 +793,9 @@ class GameUI {
             passTurnBtn: document.getElementById('pass-turn-btn'),
             mineCount: document.getElementById('mine-count'),
             flagCounter: document.getElementById('flag-counter'),
+            matchStatsDisplay: document.getElementById('match-stats-display'),
+            myWins: document.getElementById('my-wins'),
+            opponentWins: document.getElementById('opponent-wins'),
 
             // 遊戲結束
             gameResult: document.getElementById('game-result'),
@@ -942,6 +945,24 @@ class GameUI {
     updateFlagCounter(current, max) {
         if (this.elements.flagCounter) {
             this.elements.flagCounter.textContent = `🚩 ${current} / ${max}`;
+        }
+    }
+
+    updateMatchStats(matchStats, playerRole) {
+        if (!matchStats) return;
+
+        const { gamesPlayed, hostWins, guestWins } = matchStats;
+        const myWins = playerRole === 'host' ? hostWins : guestWins;
+        const opponentWins = playerRole === 'host' ? guestWins : hostWins;
+
+        if (this.elements.matchStatsDisplay) {
+            this.elements.matchStatsDisplay.textContent = `第 ${gamesPlayed + 1} 局`;
+        }
+        if (this.elements.myWins) {
+            this.elements.myWins.textContent = myWins;
+        }
+        if (this.elements.opponentWins) {
+            this.elements.opponentWins.textContent = opponentWins;
         }
     }
 
@@ -1476,6 +1497,7 @@ class Game {
         this.ui.updateMineCount(data.minesCount);
         this.ui.updateScores(0, 0);
         this.ui.updateTimer(data.timeRemaining);
+        this.ui.updateMatchStats(data.matchStats, this.client.playerRole);
 
         // 顯示房間代碼
         if (this.ui.elements.gameRoomCode) {
@@ -1542,6 +1564,11 @@ class Game {
         // 取得分數
         const myScore = this.client.playerRole === 'host' ? data.scores?.host : data.scores?.guest;
         const opponentScore = this.client.playerRole === 'host' ? data.scores?.guest : data.scores?.host;
+
+        // 更新對局統計顯示
+        if (data.matchStats) {
+            this.ui.updateMatchStats(data.matchStats, this.client.playerRole);
+        }
 
         // 顯示結果
         setTimeout(() => {

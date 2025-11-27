@@ -232,19 +232,32 @@
         }
 
         #ui-container h1 {
-            margin: 0 0 15px 0;
+            margin: 0 0 10px 0;
             font-size: 20px;
             color: #FFCB05;
             text-shadow: 2px 2px #3B4CCA;
         }
 
+        .match-stats-row {
+            text-align: center;
+            margin-bottom: 12px;
+            padding: 6px 12px;
+            background: rgba(76, 175, 80, 0.3);
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
         .player-info {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 10px;
             padding: 8px;
             background: rgba(255,255,255,0.1);
             border-radius: 8px;
+            gap: 10px;
         }
 
         .player-info.my-turn {
@@ -253,6 +266,11 @@
         }
 
         .player-name {
+            font-weight: bold;
+        }
+
+        .player-wins {
+            color: #FF9800;
             font-weight: bold;
         }
 
@@ -435,6 +453,12 @@
             margin-bottom: 5px;
         }
 
+        #opponent-panel .wins {
+            font-size: 14px;
+            color: #FF9800;
+            margin-bottom: 5px;
+        }
+
         #opponent-panel .score {
             font-size: 24px;
             color: #FFCB05;
@@ -523,10 +547,10 @@
         /* ==================== 彈幕側邊欄 ==================== */
         #chat-sidebar {
             position: fixed;
-            top: 180px;
+            top: 220px;
             right: 10px;
             width: 280px;
-            max-height: calc(100% - 200px);
+            max-height: calc(100% - 240px);
             background: rgba(0, 0, 0, 0.85);
             border-radius: 15px;
             display: flex;
@@ -682,7 +706,7 @@
         /* ==================== 開啟聊天按鈕 ==================== */
         .btn-floating-chat {
             position: fixed;
-            top: 150px;
+            top: 190px;
             right: 10px;
             padding: 10px 15px;
             background: rgba(0, 0, 0, 0.7);
@@ -773,8 +797,12 @@
         <!-- 左側玩家資訊 -->
         <div id="ui-container">
             <h1>💣 踩炸彈對戰</h1>
+            <div class="match-stats-row">
+                <span id="match-stats-display">第 1 局</span>
+            </div>
             <div class="player-info" id="my-info">
                 <span class="player-name">👤 <span id="my-name">我</span></span>
+                <span class="player-wins">🏆 <span id="my-wins">0</span></span>
                 <span class="player-score">分數: <span id="my-score">0</span></span>
             </div>
             <p style="margin: 10px 0; font-size: 14px;">
@@ -802,6 +830,7 @@
         <div id="opponent-panel">
             <h3>👥 對手</h3>
             <div class="name" id="opponent-name">對手</div>
+            <div class="wins">🏆 勝場: <span id="opponent-wins">0</span></div>
             <div class="score">分數: <span id="opponent-score">0</span></div>
             <div class="spectator-info" id="spectator-info" style="margin-top: 10px; font-size: 12px; color: #aaa;">
                 👁️ 觀戰: <span id="spectator-count">0</span>

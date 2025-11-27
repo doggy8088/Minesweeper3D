@@ -52,7 +52,13 @@ export function createRoom(hostSocketId, hostName, options = {}) {
         createdAt: Date.now(),
         gameStartedAt: null, // 遊戲開始時間
         spectators: new Set(), // 管理員觀戰者 Socket ID 集合
-        publicSpectators: new Set() // 公開觀戰者 Socket ID 集合
+        publicSpectators: new Set(), // 公開觀戰者 Socket ID 集合
+        // 對局統計
+        matchStats: {
+            gamesPlayed: 0,    // 已玩局數
+            hostWins: 0,       // 房主勝場
+            guestWins: 0       // 訪客勝場
+        }
     };
 
     rooms.set(roomCode, room);
@@ -218,6 +224,7 @@ export function getAllRoomsStats() {
     let playingCount = 0;
     let waitingCount = 0;
     let finishedCount = 0;
+    let totalGamesPlayed = 0;
 
     for (const room of rooms.values()) {
         // 統計各狀態房間數
@@ -243,8 +250,12 @@ export function getAllRoomsStats() {
             spectatorCount: room.spectators.size + room.publicSpectators.size,
             currentPlayer: room.game?.currentPlayer || null,
             timeRemaining: room.game?.timeRemaining || null,
-            scores: room.game?.scores || { host: 0, guest: 0 }
+            scores: room.game?.scores || { host: 0, guest: 0 },
+            matchStats: room.matchStats || { gamesPlayed: 0, hostWins: 0, guestWins: 0 }
         });
+
+        // 累計總對局數
+        totalGamesPlayed += room.matchStats?.gamesPlayed || 0;
     }
 
     return {
@@ -252,6 +263,7 @@ export function getAllRoomsStats() {
         playingCount,
         waitingCount,
         finishedCount,
+        totalGamesPlayed,
         rooms: roomsList
     };
 }

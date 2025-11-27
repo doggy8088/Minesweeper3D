@@ -424,6 +424,7 @@ class AdminClient {
         document.getElementById('playing-rooms').textContent = stats.playingCount;
         document.getElementById('waiting-rooms').textContent = stats.waitingCount;
         document.getElementById('finished-rooms').textContent = stats.finishedCount;
+        document.getElementById('total-games-played').textContent = stats.totalGamesPlayed || 0;
 
         // 更新圖表
         if (this.chartManager) {
@@ -437,7 +438,7 @@ class AdminClient {
         const tbody = document.getElementById('rooms-tbody');
 
         if (rooms.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="no-data">目前沒有房間</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="no-data">目前沒有房間</td></tr>';
             return;
         }
 
@@ -463,12 +464,19 @@ class AdminClient {
 
             const canSpectate = room.gameState === 'playing';
 
+            // 對局統計
+            const matchStats = room.matchStats || { gamesPlayed: 0, hostWins: 0, guestWins: 0 };
+            const matchStatsText = matchStats.gamesPlayed > 0
+                ? `第${matchStats.gamesPlayed + 1}局 (${matchStats.hostWins}:${matchStats.guestWins})`
+                : '第1局';
+
             return `
                 <tr>
                     <td><code>${room.code}</code></td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                     <td>${room.hostName || '-'}</td>
                     <td>${room.guestName || '-'}</td>
+                    <td>${matchStatsText}</td>
                     <td>${currentPlayerText}</td>
                     <td>${timeRemaining}</td>
                     <td>${playDuration}</td>

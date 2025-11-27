@@ -184,12 +184,21 @@ export function setupSocketHandlers(io, adminNamespace) {
                 // 記錄輸家，下一局由輸家先手
                 room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
 
+                // 更新對局統計
+                room.matchStats.gamesPlayed++;
+                if (result.winner === 'host') {
+                    room.matchStats.hostWins++;
+                } else if (result.winner === 'guest') {
+                    room.matchStats.guestWins++;
+                }
+
                 const gameOverData = {
                     winner: result.winner,
                     loser: result.loser,
                     reason: result.hitMine ? 'hit_mine' : 'all_safe_revealed',
                     scores: result.scores,
-                    allMines: result.allMines || room.game.getAllMines()
+                    allMines: result.allMines || room.game.getAllMines(),
+                    matchStats: room.matchStats
                 };
 
                 io.to(room.code).emit('game_over', gameOverData);
@@ -474,7 +483,8 @@ function startGame(io, room) {
         },
         guest: {
             name: room.guest.name
-        }
+        },
+        matchStats: room.matchStats
     });
 
     // 通知觀戰者遊戲開始（包含完整地雷資訊）
@@ -491,7 +501,8 @@ function startGame(io, room) {
         },
         guest: {
             name: room.guest.name
-        }
+        },
+        matchStats: room.matchStats
     });
 
     // 通知後台房間狀態更新
@@ -535,12 +546,21 @@ function handleTimeout(io, room) {
         // 記錄輸家，下一局由輸家先手
         room.nextStartingPlayer = result.loser || (result.winner === 'host' ? 'guest' : 'host');
 
+        // 更新對局統計
+        room.matchStats.gamesPlayed++;
+        if (result.winner === 'host') {
+            room.matchStats.hostWins++;
+        } else if (result.winner === 'guest') {
+            room.matchStats.guestWins++;
+        }
+
         const gameOverData = {
             winner: result.winner,
             loser: result.loser,
             reason: 'timeout_hit_mine',
             scores: result.scores,
-            allMines: result.allMines || room.game.getAllMines()
+            allMines: result.allMines || room.game.getAllMines(),
+            matchStats: room.matchStats
         };
 
         io.to(room.code).emit('game_over', gameOverData);
