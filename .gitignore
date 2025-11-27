@@ -142,3 +142,8 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+
+# Room history data (keep structure, ignore content)
+data/rooms/
+data/archive/
+!data/.gitkeep

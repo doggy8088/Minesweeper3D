@@ -641,6 +641,16 @@ class WatchController {
             this.elements.hostName.textContent = this.hostName;
             this.elements.guestName.textContent = this.guestName;
 
+            // 載入歷史訊息
+            if (data.messageHistory && data.messageHistory.length > 0) {
+                // 清空現有訊息
+                this.elements.chatMessages.innerHTML = '';
+                // 顯示歷史訊息
+                for (const msg of data.messageHistory) {
+                    this.addChatMessage(msg.nickname, msg.message, msg.timestamp);
+                }
+            }
+
             // 檢查房間狀態
             if (data.gameState === 'waiting') {
                 // 房間正在等待玩家加入

@@ -11,6 +11,7 @@ import {
     getSpectatorCount,
     getSpectators
 } from './roomManager.js';
+import { getMessageHistory } from './roomHistory.js';
 
 // 追蹤訂閱房間列表更新的管理員
 const roomSubscribers = new Set();
@@ -101,6 +102,9 @@ export function setupAdminHandler(adminNamespace, io) {
 
             console.log(`[AdminHandler] 管理員開始觀戰: ${socket.id} -> ${roomCode}`);
 
+            // 取得歷史訊息
+            const messageHistory = getMessageHistory(roomCode);
+
             // 發送完整遊戲狀態（包含地雷位置）
             const spectatorState = {
                 roomCode: room.code,
@@ -109,7 +113,8 @@ export function setupAdminHandler(adminNamespace, io) {
                 guestName: room.guest?.name || null,
                 settings: room.settings,
                 spectatorCount: getSpectatorCount(roomCode),
-                game: room.game ? room.game.getSpectatorGameState() : null
+                game: room.game ? room.game.getSpectatorGameState() : null,
+                messageHistory: messageHistory
             };
 
             socket.emit('spectate_joined', spectatorState);

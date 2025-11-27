@@ -3,6 +3,7 @@
  * 負責建立、加入、離開房間的邏輯
  */
 import { CONFIG } from './config.js';
+import * as roomHistory from './roomHistory.js';
 
 // 儲存所有房間
 const rooms = new Map();
@@ -63,6 +64,12 @@ export function createRoom(hostSocketId, hostName, options = {}) {
 
     rooms.set(roomCode, room);
 
+    // 初始化房間歷史記錄
+    roomHistory.initRoomHistory(roomCode, {
+        hostName: hostName,
+        settings: room.settings
+    });
+
     console.log(`[RoomManager] 房間已建立: ${roomCode} by ${hostName}`);
 
     return room;
@@ -96,6 +103,9 @@ export function joinRoom(roomCode, guestSocketId, guestName) {
         score: 0
     };
 
+    // 記錄玩家加入
+    roomHistory.recordPlayerJoin(roomCode.toUpperCase(), room.guest.name);
+
     console.log(`[RoomManager] 玩家加入房間: ${roomCode} - ${guestName}`);
 
     return { success: true, room };
@@ -110,6 +120,10 @@ export function leaveRoom(socketId) {
     for (const [code, room] of rooms.entries()) {
         // 檢查是否為房主
         if (room.host && room.host.socketId === socketId) {
+            // 記錄玩家離開並封存房間記錄
+            roomHistory.recordPlayerLeave(code, 'host', 'disconnect');
+            roomHistory.archiveRoomHistory(code);
+            
             rooms.delete(code);
             console.log(`[RoomManager] 房主離開，房間已刪除: ${code}`);
             return { room, wasHost: true };
@@ -119,6 +133,9 @@ export function leaveRoom(socketId) {
         if (room.guest && room.guest.socketId === socketId) {
             const guestInfo = room.guest;
             room.guest = null;
+
+            // 記錄玩家離開
+            roomHistory.recordPlayerLeave(code, 'guest', 'disconnect');
 
             // 如果遊戲進行中，訪客離開視為放棄
             if (room.gameState === 'playing') {
@@ -202,6 +219,9 @@ export function cleanupIdleRooms() {
     for (const [code, room] of rooms.entries()) {
         // 清理超過閒置時間的房間
         if (now - room.createdAt > CONFIG.ROOM_IDLE_TIMEOUT && room.gameState !== 'playing') {
+            // 封存房間記錄
+            roomHistory.archiveRoomHistory(code);
+            
             rooms.delete(code);
             console.log(`[RoomManager] 清理閒置房間: ${code}`);
         }
@@ -384,6 +404,12 @@ export function removePublicSpectatorBySocketId(socketId) {
 
 // 定期清理閒置房間
 setInterval(cleanupIdleRooms, 5 * 60 * 1000); // 每 5 分鐘清理一次
+
+// 導出 roomHistory 的函式供其他模組使用
+export {
+    getRoomHistory,
+    getMessageHistory
+} from './roomHistory.js';
 
 export default {
     createRoom,

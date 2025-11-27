@@ -4,6 +4,7 @@
  */
 import { GameEngine } from './gameEngine.js';
 import * as roomManager from './roomManager.js';
+import * as roomHistory from './roomHistory.js';
 import { broadcastToSpectators, broadcastRoomsUpdate } from './adminHandler.js';
 
 // 儲存 io 和 adminNamespace 的參考
@@ -182,6 +183,16 @@ export function setupSocketHandlers(io, adminNamespace) {
                 timerStarted: result.timerStarted
             });
 
+            // 記錄遊戲動作
+            roomHistory.recordGameMove(room.code, {
+                type: 'reveal',
+                player: playerRole,
+                x,
+                z,
+                hitMine: result.hitMine,
+                revealedCount: result.revealedTiles ? result.revealedTiles.length : 1
+            });
+
             // 如果遊戲結束
             if (result.gameOver) {
                 // 記錄輸家，下一局由輸家先手
@@ -208,6 +219,9 @@ export function setupSocketHandlers(io, adminNamespace) {
 
                 // 廣播給觀戰者
                 broadcastToSpectators(io, room.code, 'game_over', gameOverData);
+
+                // 記錄遊戲結束
+                roomHistory.recordGameEnd(room.code, gameOverData);
 
                 // 通知後台房間狀態更新
                 if (adminNamespaceInstance) {
@@ -236,6 +250,12 @@ export function setupSocketHandlers(io, adminNamespace) {
                 socket.emit('error', { error: result.error });
                 return;
             }
+
+            // 記錄傳遞回合動作
+            roomHistory.recordGameMove(room.code, {
+                type: 'pass',
+                player: playerRole
+            });
 
             // 廣播回合切換
             io.to(room.code).emit('turn_changed', {
@@ -371,6 +391,9 @@ export function setupSocketHandlers(io, adminNamespace) {
             // 標記此 socket 為公開觀戰者
             socket.spectateRoomCode = roomCode;
 
+            // 取得歷史訊息
+            const messageHistory = roomHistory.getMessageHistory(roomCode);
+
             // 回傳遊戲狀態 (使用玩家視角，不含地雷位置)
             socket.emit('spectate_joined', {
                 roomCode: room.code,
@@ -378,7 +401,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 guestName: room.guest?.name,
                 spectatorCount: roomManager.getSpectatorCount(roomCode),
                 gameState: room.gameState,
-                game: room.game ? room.game.getGameState() : null
+                game: room.game ? room.game.getGameState() : null,
+                messageHistory: messageHistory
             });
 
             // 廣播觀戰人數更新
@@ -436,6 +460,9 @@ export function setupSocketHandlers(io, adminNamespace) {
                 timestamp: now,
                 isPlayer: !!isPlayer
             };
+
+            // 記錄訊息到歷史
+            roomHistory.recordMessage(roomCode, danmakuData);
 
             // 廣播給房間內所有人 (玩家 + 公開觀戰者)
             io.to(roomCode).emit('danmaku', danmakuData);
@@ -516,6 +543,12 @@ function startGame(io, room) {
     // 更新房間狀態
     room.gameState = 'playing';
     room.gameStartedAt = Date.now(); // 記錄遊戲開始時間
+
+    // 記錄遊戲開始
+    roomHistory.recordGameStart(room.code, {
+        startingPlayer,
+        settings: room.settings
+    });
 
     // 不啟動計時器，等待第一次點擊後才開始計時
 
@@ -598,6 +631,9 @@ function handleTimeout(io, room) {
         // 廣播給觀戰者
         broadcastToSpectators(ioInstance, room.code, 'game_over', gameOverData);
 
+        // 記錄遊戲結束
+        roomHistory.recordGameEnd(room.code, gameOverData);
+
         // 通知後台房間狀態更新
         if (adminNamespaceInstance) {
             broadcastRoomsUpdate(adminNamespaceInstance);
@@ -606,6 +642,12 @@ function handleTimeout(io, room) {
         room.gameState = 'finished';
         room.game.destroy();
     } else {
+        // 記錄超時自動傳遞
+        roomHistory.recordGameMove(room.code, {
+            type: 'timeout_auto_pass',
+            player: result.nextPlayer === 'host' ? 'guest' : 'host'
+        });
+
         // 自動傳遞回合（有揭開格子但未傳遞）
         io.to(room.code).emit('timeout_action', {
             player: result.nextPlayer === 'host' ? 'guest' : 'host',
