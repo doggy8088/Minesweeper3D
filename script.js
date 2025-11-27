@@ -1590,6 +1590,11 @@ class Game {
         this.renderer.setMyTurn(isMyTurn);
         this.ui.updateTurn(isMyTurn, this.getPlayerName(this.currentPlayer));
         this.ui.updatePassButton(false, isMyTurn);
+
+        // 顯示傳遞回合按鈕
+        if (this.ui.elements.passTurnBtn) {
+            this.ui.elements.passTurnBtn.style.display = 'block';
+        }
     }
 
     handleTileRevealed(data) {
@@ -1630,6 +1635,11 @@ class Game {
 
     handleGameOver(data) {
         this.gameActive = false;
+
+        // 隱藏傳遞回合按鈕
+        if (this.ui.elements.passTurnBtn) {
+            this.ui.elements.passTurnBtn.style.display = 'none';
+        }
 
         // 顯示所有地雷
         if (data.allMines) {

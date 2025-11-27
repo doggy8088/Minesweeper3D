@@ -396,7 +396,7 @@
         /* ==================== 回合指示器 ==================== */
         #turn-panel {
             position: absolute;
-            top: 370px;
+            top: 420px;
             left: 20px;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(10px);
@@ -641,20 +641,21 @@
         /* ==================== 彈幕側邊欄 ==================== */
         #chat-sidebar {
             position: fixed;
-            top: 60px;
-            right: 0;
+            top: 70px;
+            right: 15px;
             width: 300px;
-            height: calc(100% - 60px);
+            height: calc(100% - 85px);
             background: rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             z-index: 200;
             transition: transform 0.3s ease;
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
         }
 
         #chat-sidebar.chat-collapsed {
-            transform: translateX(100%);
+            transform: translateX(calc(100% + 15px));
         }
 
         .chat-header {
