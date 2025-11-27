@@ -616,6 +616,8 @@ class MultiplayerClient {
         this.onGameOver = null;
         this.onError = null;
         this.onRestartRequested = null;
+        this.onSpectatorCountUpdate = null;
+        this.onDanmaku = null;
     }
 
     connect() {
@@ -700,6 +702,16 @@ class MultiplayerClient {
         this.socket.on('restart_requested', (data) => {
             if (this.onRestartRequested) this.onRestartRequested(data);
         });
+
+        // 觀戰人數更新
+        this.socket.on('spectator_count_update', (data) => {
+            if (this.onSpectatorCountUpdate) this.onSpectatorCountUpdate(data);
+        });
+
+        // 彈幕訊息
+        this.socket.on('danmaku', (data) => {
+            if (this.onDanmaku) this.onDanmaku(data);
+        });
     }
 
     createRoom(playerName, settings = {}) {
@@ -774,7 +786,17 @@ class GameUI {
             // 遊戲結束
             gameResult: document.getElementById('game-result'),
             restartBtn: document.getElementById('restart-btn'),
-            backToMenuBtn: document.getElementById('back-to-menu-btn')
+            backToMenuBtn: document.getElementById('back-to-menu-btn'),
+
+            // 彈幕與觀戰
+            shareSpectateBtn: document.getElementById('share-spectate-btn'),
+            shareCopiedHint: document.getElementById('share-copied-hint'),
+            spectatorCount: document.getElementById('spectator-count'),
+            chatSidebar: document.getElementById('chat-sidebar'),
+            chatMessages: document.getElementById('chat-messages'),
+            toggleChatBtn: document.getElementById('toggle-chat-btn'),
+            openChatBtn: document.getElementById('open-chat-btn'),
+            chatUnreadBadge: document.getElementById('chat-unread-badge')
         };
     }
 
@@ -903,6 +925,61 @@ class GameUI {
         alert(message);
     }
 
+    updateSpectatorCount(count) {
+        if (this.elements.spectatorCount) {
+            this.elements.spectatorCount.textContent = count;
+        }
+    }
+
+    addChatMessage(nickname, content) {
+        if (!this.elements.chatMessages) return;
+
+        const messageEl = document.createElement('div');
+        messageEl.className = 'chat-message';
+        messageEl.innerHTML = `
+            <div class="nickname">${this.escapeHtml(nickname)}</div>
+            <div class="content">${this.escapeHtml(content)}</div>
+        `;
+
+        this.elements.chatMessages.appendChild(messageEl);
+        this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+
+        // 限制訊息數量
+        while (this.elements.chatMessages.children.length > 50) {
+            this.elements.chatMessages.removeChild(this.elements.chatMessages.firstChild);
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    setChatOpen(isOpen) {
+        if (this.elements.chatSidebar) {
+            this.elements.chatSidebar.classList.toggle('chat-collapsed', !isOpen);
+        }
+        if (this.elements.openChatBtn) {
+            this.elements.openChatBtn.classList.toggle('chat-open', isOpen);
+        }
+    }
+
+    isChatOpen() {
+        return this.elements.chatSidebar && !this.elements.chatSidebar.classList.contains('chat-collapsed');
+    }
+
+    updateUnreadBadge(count) {
+        if (this.elements.chatUnreadBadge) {
+            if (count > 0) {
+                this.elements.chatUnreadBadge.textContent = count > 99 ? '99+' : count;
+                this.elements.chatUnreadBadge.style.display = 'inline';
+            } else {
+                this.elements.chatUnreadBadge.style.display = 'none';
+            }
+        }
+    }
+
     getPlayerName() {
         return this.elements.playerNameInput?.value.trim() || '玩家';
     }
@@ -928,6 +1005,9 @@ class Game {
         this.currentPlayer = null;
         this.canPass = false;
         this.gameActive = false;
+        this.roomCode = null;
+        this.chatOpen = false;
+        this.unreadMessages = 0;
     }
 
     async init() {
@@ -959,12 +1039,14 @@ class Game {
         // 房間建立成功
         this.client.onRoomCreated = (data) => {
             console.log('房間已建立:', data.roomCode);
+            this.roomCode = data.roomCode;
             this.ui.showLobby(data.roomCode, true);
         };
 
         // 房間加入成功
         this.client.onRoomJoined = (data) => {
             console.log('已加入房間:', data.roomCode);
+            this.roomCode = data.roomCode;
             this.ui.showLobby(data.roomCode, false);
             this.ui.elements.waitingStatus.textContent = '等待遊戲開始...';
         };
@@ -1028,6 +1110,22 @@ class Game {
             }
         };
 
+        // 觀戰人數更新
+        this.client.onSpectatorCountUpdate = (data) => {
+            this.ui.updateSpectatorCount(data.count);
+        };
+
+        // 彈幕訊息
+        this.client.onDanmaku = (data) => {
+            this.ui.addChatMessage(data.nickname, data.message);
+
+            // 如果聊天關閉，增加未讀計數
+            if (!this.chatOpen) {
+                this.unreadMessages++;
+                this.ui.updateUnreadBadge(this.unreadMessages);
+            }
+        };
+
         // 渲染器點擊回調
         this.renderer.onTileClick = (x, z) => {
             if (this.gameActive && this.client.isMyTurn(this.currentPlayer)) {
@@ -1081,6 +1179,20 @@ class Game {
         // 返回選單
         this.ui.elements.backToMenuBtn?.addEventListener('click', () => {
             location.reload();
+        });
+
+        // 分享觀戰連結
+        this.ui.elements.shareSpectateBtn?.addEventListener('click', () => {
+            this.copySpectateLink();
+        });
+
+        // 彈幕側邊欄開關
+        this.ui.elements.toggleChatBtn?.addEventListener('click', () => {
+            this.toggleChat(false);
+        });
+
+        this.ui.elements.openChatBtn?.addEventListener('click', () => {
+            this.toggleChat(true);
         });
     }
 
@@ -1176,6 +1288,84 @@ class Game {
             return this.client.playerName;
         }
         return this.client.opponentName;
+    }
+
+    copySpectateLink() {
+        if (!this.roomCode) {
+            console.warn('無法複製：roomCode 不存在');
+            return;
+        }
+
+        const spectateUrl = `${window.location.origin}/watch?room=${this.roomCode}`;
+
+        // 使用多種方式嘗試複製
+        this.copyToClipboard(spectateUrl).then(success => {
+            if (success) {
+                // 顯示已複製提示
+                if (this.ui.elements.shareCopiedHint) {
+                    this.ui.elements.shareCopiedHint.style.display = 'block';
+                    setTimeout(() => {
+                        this.ui.elements.shareCopiedHint.style.display = 'none';
+                    }, 2000);
+                }
+            } else {
+                // 降級處理：用 prompt 顯示連結
+                prompt('請手動複製觀戰連結:', spectateUrl);
+            }
+        });
+    }
+
+    /**
+     * 複製文字到剪貼簿（相容性處理）
+     * @param {string} text - 要複製的文字
+     * @returns {Promise<boolean>} 是否成功
+     */
+    async copyToClipboard(text) {
+        // 方法 1: 使用現代 Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(text);
+                console.log('Clipboard API 複製成功');
+                return true;
+            } catch (err) {
+                console.warn('Clipboard API 失敗:', err);
+            }
+        }
+
+        // 方法 2: 使用 execCommand (舊版瀏覽器相容)
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            const success = document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (success) {
+                console.log('execCommand 複製成功');
+                return true;
+            }
+        } catch (err) {
+            console.warn('execCommand 失敗:', err);
+        }
+
+        return false;
+    }
+
+    toggleChat(open) {
+        this.chatOpen = open;
+        this.ui.setChatOpen(open);
+
+        // 清除未讀計數
+        if (open) {
+            this.unreadMessages = 0;
+            this.ui.updateUnreadBadge(0);
+        }
     }
 }
 

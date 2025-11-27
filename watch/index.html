@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>觀戰 - 雙人對戰 3D 踩地雷</title>
+    <link rel="stylesheet" href="watch.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- 載入中畫面 -->
+    <div id="loading-screen" class="screen">
+        <div class="loading-container">
+            <h1>🎮 觀戰連線中</h1>
+            <div class="loading-spinner"></div>
+            <p id="loading-status">正在連線...</p>
+        </div>
+    </div>
+
+    <!-- 錯誤畫面 -->
+    <div id="error-screen" class="screen hidden">
+        <div class="error-container">
+            <h1>😢 無法觀戰</h1>
+            <p id="error-message">房間不存在或遊戲未進行中</p>
+            <button class="btn btn-primary" onclick="location.href='/'">返回首頁</button>
+        </div>
+    </div>
+
+    <!-- 觀戰畫面 -->
+    <div id="spectate-screen" class="screen hidden">
+        <!-- 頂部資訊列 -->
+        <div id="top-bar">
+            <div class="room-info">
+                <span class="room-badge">👁️ 觀戰模式</span>
+                <span id="room-code-display">房間: ------</span>
+                <span id="spectator-count">觀戰人數: 1</span>
+            </div>
+            <div class="game-status">
+                <span id="game-status-text">遊戲進行中</span>
+            </div>
+        </div>
+
+        <!-- 3D 遊戲畫面 -->
+        <div id="game-canvas-container"></div>
+
+        <!-- 左側玩家資訊 -->
+        <div id="players-panel">
+            <div class="player-card host" id="host-card">
+                <div class="player-label">🏠 房主</div>
+                <div class="player-name" id="host-name">等待中</div>
+                <div class="player-score">分數: <span id="host-score">0</span></div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="player-card guest" id="guest-card">
+                <div class="player-label">👤 挑戰者</div>
+                <div class="player-name" id="guest-name">等待中</div>
+                <div class="player-score">分數: <span id="guest-score">0</span></div>
+            </div>
+        </div>
+
+        <!-- 回合指示器 -->
+        <div id="turn-panel">
+            <div class="turn-indicator" id="turn-indicator">等待遊戲開始</div>
+            <div class="timer-container">
+                <span class="timer-label">剩餘時間</span>
+                <span id="timer-display">--</span>
+                <span class="timer-label">秒</span>
+            </div>
+        </div>
+
+        <!-- 彈幕側邊欄 -->
+        <div id="chat-sidebar">
+            <div class="chat-header">
+                <h3>💬 觀眾留言</h3>
+                <button id="toggle-chat-btn" class="btn-icon" title="關閉留言區">✕</button>
+            </div>
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="nickname-input" placeholder="暱稱 (可選)" maxlength="10">
+                <div class="message-input-row">
+                    <input type="text" id="message-input" placeholder="發送彈幕..." maxlength="50">
+                    <button id="send-message-btn" class="btn btn-primary">發送</button>
+                </div>
+                <div class="chat-hint">按 Enter 發送，每 2 秒可發送一則</div>
+            </div>
+        </div>
+
+        <!-- 展開聊天按鈕 (聊天關閉時顯示) -->
+        <button id="open-chat-btn" class="btn-floating hidden" title="開啟留言區">💬</button>
+
+        <!-- 遊戲結束覆蓋層 -->
+        <div id="game-over-overlay" class="hidden">
+            <div class="game-over-content">
+                <h2 id="game-over-result">遊戲結束</h2>
+                <p id="game-over-message"></p>
+                <button class="btn btn-primary" onclick="location.href='/'">返回首頁</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="watch.js"></script>
+</body>
+</html>

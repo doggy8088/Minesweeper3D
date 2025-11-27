@@ -33,6 +33,9 @@ app.use(express.static(join(__dirname, '..')));
 // 後台管理靜態檔案服務
 app.use('/admin', express.static(join(__dirname, '..', 'admin')));
 
+// 公開觀戰頁面靜態檔案服務
+app.use('/watch', express.static(join(__dirname, '..', 'watch')));
+
 // 設定 /admin 命名空間
 const adminNamespace = io.of('/admin');
 
@@ -80,6 +83,7 @@ httpServer.listen(CONFIG.PORT, () => {
     console.log('==========================================');
     console.log(`   📡 伺服器地址: http://localhost:${CONFIG.PORT}`);
     console.log(`   🔧 後台管理: http://localhost:${CONFIG.PORT}/admin`);
+    console.log(`   👁️  公開觀戰: http://localhost:${CONFIG.PORT}/watch?room=XXXXXX`);
     console.log(`   ⏱️  回合時間限制: ${CONFIG.TURN_TIME_LIMIT} 秒`);
     console.log(`   📐 網格大小: ${CONFIG.GRID_SIZE}x${CONFIG.GRID_SIZE}`);
     console.log(`   💣 預設地雷數: ${CONFIG.DEFAULT_MINES_COUNT}`);

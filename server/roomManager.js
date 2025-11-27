@@ -51,7 +51,8 @@ export function createRoom(hostSocketId, hostName, options = {}) {
         game: null, // GameEngine 實例
         createdAt: Date.now(),
         gameStartedAt: null, // 遊戲開始時間
-        spectators: new Set() // 觀戰者 Socket ID 集合
+        spectators: new Set(), // 管理員觀戰者 Socket ID 集合
+        publicSpectators: new Set() // 公開觀戰者 Socket ID 集合
     };
 
     rooms.set(roomCode, room);
@@ -239,7 +240,7 @@ export function getAllRoomsStats() {
             createdAt: room.createdAt,
             gameStartedAt: room.gameStartedAt,
             playDuration,
-            spectatorCount: room.spectators.size,
+            spectatorCount: room.spectators.size + room.publicSpectators.size,
             currentPlayer: room.game?.currentPlayer || null,
             timeRemaining: room.game?.timeRemaining || null,
             scores: room.game?.scores || { host: 0, guest: 0 }
@@ -309,7 +310,7 @@ export function removeSpectatorBySocketId(socketId) {
 export function getSpectatorCount(roomCode) {
     const room = rooms.get(roomCode.toUpperCase());
     if (!room) return 0;
-    return room.spectators.size;
+    return room.spectators.size + room.publicSpectators.size;
 }
 
 /**
@@ -321,6 +322,52 @@ export function getSpectators(roomCode) {
     const room = rooms.get(roomCode.toUpperCase());
     if (!room) return [];
     return Array.from(room.spectators);
+}
+
+/**
+ * 新增公開觀戰者到房間
+ * @param {string} roomCode - 房間代碼
+ * @param {string} socketId - 觀戰者 Socket ID
+ * @returns {boolean} 是否成功
+ */
+export function addPublicSpectator(roomCode, socketId) {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.publicSpectators.add(socketId);
+    console.log(`[RoomManager] 公開觀戰者加入房間: ${roomCode}, 目前觀戰人數: ${room.spectators.size + room.publicSpectators.size}`);
+    return true;
+}
+
+/**
+ * 移除公開觀戰者
+ * @param {string} roomCode - 房間代碼
+ * @param {string} socketId - 觀戰者 Socket ID
+ * @returns {boolean} 是否成功
+ */
+export function removePublicSpectator(roomCode, socketId) {
+    const room = rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.publicSpectators.delete(socketId);
+    console.log(`[RoomManager] 公開觀戰者離開房間: ${roomCode}, 目前觀戰人數: ${room.spectators.size + room.publicSpectators.size}`);
+    return true;
+}
+
+/**
+ * 根據 Socket ID 移除公開觀戰者（斷線時使用）
+ * @param {string} socketId - 觀戰者 Socket ID
+ * @returns {string|null} 離開的房間代碼
+ */
+export function removePublicSpectatorBySocketId(socketId) {
+    for (const [code, room] of rooms.entries()) {
+        if (room.publicSpectators.has(socketId)) {
+            room.publicSpectators.delete(socketId);
+            console.log(`[RoomManager] 公開觀戰者斷線離開房間: ${code}`);
+            return code;
+        }
+    }
+    return null;
 }
 
 // 定期清理閒置房間
@@ -340,5 +387,8 @@ export default {
     removeSpectator,
     removeSpectatorBySocketId,
     getSpectatorCount,
-    getSpectators
+    getSpectators,
+    addPublicSpectator,
+    removePublicSpectator,
+    removePublicSpectatorBySocketId
 };

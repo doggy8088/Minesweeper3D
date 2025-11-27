@@ -10,6 +10,10 @@ import { broadcastToSpectators, broadcastRoomsUpdate } from './adminHandler.js';
 let ioInstance = null;
 let adminNamespaceInstance = null;
 
+// 彈幕發送頻率限制 (每人每 2 秒一則)
+const danmakuCooldowns = new Map();
+const DANMAKU_COOLDOWN_MS = 2000;
+
 /**
  * 設定 Socket.IO 事件處理
  * @param {import('socket.io').Server} io - Socket.IO 伺服器實例
@@ -208,6 +212,17 @@ export function setupSocketHandlers(io, adminNamespace) {
         socket.on('disconnect', () => {
             console.log(`[Socket] 用戶斷線: ${socket.id}`);
 
+            // 清理彈幕冷卻記錄
+            danmakuCooldowns.delete(socket.id);
+
+            // 檢查是否為公開觀戰者
+            const spectateRoomCode = roomManager.removePublicSpectatorBySocketId(socket.id);
+            if (spectateRoomCode) {
+                // 廣播觀戰人數更新
+                broadcastSpectatorCount(io, spectateRoomCode);
+                return;
+            }
+
             const result = roomManager.leaveRoom(socket.id);
 
             if (result) {
@@ -269,6 +284,106 @@ export function setupSocketHandlers(io, adminNamespace) {
 
             // 重新開始遊戲
             startGame(io, room);
+        });
+
+        /**
+         * 公開觀戰 - 加入觀戰
+         */
+        socket.on('public_spectate', ({ roomCode }) => {
+            const room = roomManager.getRoomByCode(roomCode);
+
+            if (!room) {
+                socket.emit('spectate_error', { error: '房間不存在' });
+                return;
+            }
+
+            if (room.gameState !== 'playing') {
+                socket.emit('spectate_error', { error: '遊戲尚未開始或已結束' });
+                return;
+            }
+
+            // 加入觀戰
+            roomManager.addPublicSpectator(roomCode, socket.id);
+
+            // 加入 Socket.IO 房間 (用於接收遊戲事件與彈幕)
+            socket.join(roomCode);
+            socket.join(`spectate:${roomCode}`);
+
+            // 標記此 socket 為公開觀戰者
+            socket.spectateRoomCode = roomCode;
+
+            // 回傳遊戲狀態 (使用玩家視角，不含地雷位置)
+            socket.emit('spectate_joined', {
+                roomCode: room.code,
+                hostName: room.host?.name,
+                guestName: room.guest?.name,
+                spectatorCount: roomManager.getSpectatorCount(roomCode),
+                game: room.game ? room.game.getClientGameState() : null
+            });
+
+            // 廣播觀戰人數更新
+            broadcastSpectatorCount(io, roomCode);
+
+            console.log(`[Socket] 公開觀戰者加入: ${roomCode}, socket: ${socket.id}`);
+        });
+
+        /**
+         * 離開觀戰
+         */
+        socket.on('leave_spectate', () => {
+            if (socket.spectateRoomCode) {
+                const roomCode = socket.spectateRoomCode;
+                roomManager.removePublicSpectator(roomCode, socket.id);
+                socket.leave(roomCode);
+                socket.leave(`spectate:${roomCode}`);
+                socket.spectateRoomCode = null;
+
+                // 廣播觀戰人數更新
+                broadcastSpectatorCount(io, roomCode);
+            }
+        });
+
+        /**
+         * 發送彈幕
+         */
+        socket.on('send_danmaku', ({ roomCode, message, nickname }) => {
+            // 驗證房間存在
+            const room = roomManager.getRoomByCode(roomCode);
+            if (!room) return;
+
+            // 檢查發送頻率
+            const now = Date.now();
+            const lastSendTime = danmakuCooldowns.get(socket.id) || 0;
+            if (now - lastSendTime < DANMAKU_COOLDOWN_MS) {
+                return; // 靜默忽略，前端已有提示
+            }
+            danmakuCooldowns.set(socket.id, now);
+
+            // 驗證訊息
+            if (!message || typeof message !== 'string') return;
+            const trimmedMessage = message.trim().substring(0, 50);
+            if (trimmedMessage.length === 0) return;
+
+            // 處理暱稱
+            const safeNickname = (nickname && typeof nickname === 'string')
+                ? nickname.trim().substring(0, 10) || '匿名觀眾'
+                : '匿名觀眾';
+
+            // 建立彈幕資料
+            const danmakuData = {
+                id: `${socket.id}-${now}`,
+                nickname: safeNickname,
+                message: trimmedMessage,
+                timestamp: now
+            };
+
+            // 廣播給房間內所有人 (玩家 + 公開觀戰者)
+            io.to(roomCode).emit('danmaku', danmakuData);
+
+            // 廣播給管理員觀戰者
+            broadcastToSpectators(io, roomCode, 'danmaku', danmakuData);
+
+            console.log(`[Socket] 彈幕: [${safeNickname}] ${trimmedMessage} (房間: ${roomCode})`);
         });
     });
 }
@@ -421,3 +536,20 @@ function handleTimeout(io, room) {
 }
 
 export default { setupSocketHandlers };
+
+/**
+ * 廣播觀戰人數更新
+ * @param {import('socket.io').Server} io
+ * @param {string} roomCode
+ */
+function broadcastSpectatorCount(io, roomCode) {
+    const count = roomManager.getSpectatorCount(roomCode);
+
+    // 廣播給房間內玩家和公開觀戰者
+    io.to(roomCode).emit('spectator_count_update', { count });
+
+    // 廣播給管理員觀戰者
+    if (adminNamespaceInstance) {
+        adminNamespaceInstance.to(`spectate:${roomCode}`).emit('spectator_count_update', { count });
+    }
+}

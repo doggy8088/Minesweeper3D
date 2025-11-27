@@ -1,0 +1,547 @@
+/* 全域樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #87CEEB;
+    color: #333;
+    overflow: hidden;
+}
+
+.screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 按鈕樣式 */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+    background: #888;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 5px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.btn-icon:hover {
+    opacity: 1;
+}
+
+.btn-floating {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+    transition: all 0.2s;
+    z-index: 100;
+}
+
+.btn-floating:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+/* 載入畫面 */
+#loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.loading-container {
+    text-align: center;
+    color: white;
+}
+
+.loading-container h1 {
+    font-size: 32px;
+    margin-bottom: 30px;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#loading-status {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+/* 錯誤畫面 */
+#error-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.error-container {
+    text-align: center;
+    color: white;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 40px;
+    border-radius: 20px;
+}
+
+.error-container h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+#error-message {
+    font-size: 18px;
+    margin-bottom: 30px;
+    opacity: 0.9;
+}
+
+/* 觀戰畫面 */
+#spectate-screen {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 頂部資訊列 */
+#top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.room-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: white;
+}
+
+.room-badge {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#room-code-display {
+    font-family: monospace;
+    font-size: 14px;
+}
+
+#spectator-count {
+    font-size: 14px;
+    color: #aaa;
+}
+
+.game-status {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+/* 3D 遊戲畫面容器 */
+#game-canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* 左側玩家資訊 */
+#players-panel {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+}
+
+.player-card {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 15px 20px;
+    border-radius: 12px;
+    min-width: 150px;
+    text-align: center;
+    color: white;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.player-card.host {
+    border-color: #FFCB05;
+}
+
+.player-card.guest {
+    border-color: #2196F3;
+}
+
+.player-card.active {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+    border-color: #4CAF50;
+}
+
+.player-label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.player-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.player-score {
+    font-size: 14px;
+    color: #FFCB05;
+}
+
+.vs-badge {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* 回合指示器 */
+#turn-panel {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 30px;
+    border-radius: 50px;
+    text-align: center;
+    z-index: 100;
+    color: white;
+}
+
+.turn-indicator {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #4CAF50;
+}
+
+.timer-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.timer-label {
+    color: #aaa;
+    font-size: 12px;
+}
+
+#timer-display {
+    font-size: 24px;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+#timer-display.timer-warning {
+    color: #FFC107;
+}
+
+#timer-display.timer-danger {
+    color: #FF5252;
+    animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* 彈幕側邊欄 */
+#chat-sidebar {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    width: 320px;
+    height: calc(100% - 60px);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform 0.3s ease;
+}
+
+#chat-sidebar.collapsed {
+    transform: translateX(100%);
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.chat-header h3 {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.chat-message {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: white;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message .nickname {
+    font-size: 12px;
+    color: #4CAF50;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.chat-message .content {
+    font-size: 14px;
+    word-break: break-word;
+}
+
+.chat-message .time {
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.chat-message.system {
+    background: rgba(102, 126, 234, 0.2);
+    border-left: 3px solid #667eea;
+}
+
+.chat-message.system .nickname {
+    color: #667eea;
+}
+
+.chat-input-area {
+    padding: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#nickname-input,
+#message-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+#nickname-input {
+    margin-bottom: 10px;
+}
+
+#nickname-input:focus,
+#message-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+#nickname-input::placeholder,
+#message-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.message-input-row {
+    display: flex;
+    gap: 10px;
+}
+
+.message-input-row #message-input {
+    flex: 1;
+}
+
+.message-input-row .btn {
+    padding: 10px 15px;
+    white-space: nowrap;
+}
+
+.chat-hint {
+    font-size: 11px;
+    color: #666;
+    margin-top: 8px;
+    text-align: center;
+}
+
+/* 遊戲結束覆蓋層 */
+#game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.game-over-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 400px;
+}
+
+#game-over-result {
+    font-size: 28px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+#game-over-message {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+/* RWD 響應式設計 */
+@media (max-width: 768px) {
+    #chat-sidebar {
+        width: 100%;
+        height: 50%;
+        top: auto;
+        bottom: 0;
+        transform: translateY(0);
+    }
+
+    #chat-sidebar.collapsed {
+        transform: translateY(100%);
+    }
+
+    #players-panel {
+        flex-direction: row;
+        top: auto;
+        bottom: 55%;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .player-card {
+        padding: 10px 15px;
+        min-width: 120px;
+    }
+
+    #turn-panel {
+        top: 70px;
+        padding: 10px 20px;
+    }
+}
