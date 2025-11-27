@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>觀戰 - 雙人對戰 3D 踩地雷</title>
-    <link rel="stylesheet" href="watch.css">
+    <script>
+        // 動態載入 CSS 避免快取
+        const watchCss = document.createElement('link');
+        watchCss.rel = 'stylesheet';
+        watchCss.href = 'watch.css?v=' + Date.now();
+        document.head.appendChild(watchCss);
+    </script>
     <script type="importmap">
     {
         "imports": {
@@ -30,6 +36,17 @@
             <h1>😢 無法觀戰</h1>
             <p id="error-message">房間不存在或遊戲未進行中</p>
             <button class="btn btn-primary" onclick="location.href='/'">返回首頁</button>
+        </div>
+    </div>
+
+    <!-- 等待畫面 -->
+    <div id="waiting-screen" class="screen hidden">
+        <div class="waiting-container">
+            <h1>⏳ 等待玩家加入</h1>
+            <p>房間 <strong id="waiting-room-code">------</strong> 正在等待對手加入</p>
+            <div class="loading-spinner"></div>
+            <p class="waiting-hint">遊戲開始後將自動進入觀戰模式</p>
+            <button class="btn btn-secondary" onclick="location.href='/'">返回首頁</button>
         </div>
     </div>
 
@@ -105,6 +122,12 @@
         </div>
     </div>
 
-    <script type="module" src="watch.js"></script>
+    <script>
+        // 動態載入 JS 避免快取
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'watch.js?v=' + Date.now();
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>

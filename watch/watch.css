@@ -152,6 +152,58 @@ body {
     opacity: 0.9;
 }
 
+/* 等待畫面 */
+#waiting-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.waiting-container {
+    text-align: center;
+    color: white;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 40px;
+    border-radius: 20px;
+}
+
+.waiting-container h1 {
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+.waiting-container p {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.waiting-container strong {
+    font-family: monospace;
+    font-size: 24px;
+    color: #FFCB05;
+}
+
+.waiting-container .loading-spinner {
+    margin: 20px auto;
+}
+
+.waiting-hint {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 30px;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 /* 觀戰畫面 */
 #spectate-screen {
     display: flex;

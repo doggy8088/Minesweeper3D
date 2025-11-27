@@ -180,6 +180,20 @@
             background: #f5f5f5;
             border-radius: 10px;
             font-family: monospace;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .room-code:hover {
+            background: #e8e8e8;
+        }
+
+        .room-code:active {
+            transform: scale(0.98);
+        }
+
+        .room-code.copied {
+            background: #c8e6c9;
         }
 
         .waiting-status {
@@ -249,14 +263,61 @@
         /* ==================== 回合指示器 ==================== */
         #turn-panel {
             position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.8);
-            padding: 15px 30px;
-            border-radius: 50px;
+            padding: 15px 20px;
+            border-radius: 15px;
             text-align: center;
             z-index: 100;
+            min-width: 180px;
+        }
+
+        .room-info {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .room-info .room-code-label {
+            color: #FFCB05;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .room-info .room-code-label:hover {
+            color: #fff;
+        }
+
+        .room-info .room-code-label.copied {
+            color: #4CAF50;
+        }
+
+        .btn-copy-spectate {
+            margin-top: 8px;
+            padding: 6px 12px;
+            font-size: 11px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            pointer-events: auto;
+        }
+
+        .btn-copy-spectate:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-copy-spectate.copied {
+            background: #4CAF50;
         }
 
         .turn-indicator {
@@ -387,13 +448,37 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            padding: 40px;
+            padding: 0;
             border-radius: 20px;
             border: 6px solid #3B4CCA;
             text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             z-index: 1000;
             min-width: 300px;
+            cursor: default;
+        }
+
+        #game-over .drag-handle {
+            background: linear-gradient(135deg, #3B4CCA, #667eea);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 14px 14px 0 0;
+            cursor: move;
+            user-select: none;
+            font-size: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #game-over .drag-handle::before {
+            content: '⋮⋮';
+            letter-spacing: 2px;
+        }
+
+        #game-over .content {
+            padding: 30px 40px 40px;
         }
 
         #game-result {
@@ -438,17 +523,18 @@
         /* ==================== 彈幕側邊欄 ==================== */
         #chat-sidebar {
             position: fixed;
-            top: 10px;
+            top: 180px;
             right: 10px;
             width: 280px;
-            max-height: calc(100% - 20px);
+            max-height: calc(100% - 200px);
             background: rgba(0, 0, 0, 0.85);
             border-radius: 15px;
             display: flex;
             flex-direction: column;
             z-index: 200;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: opacity 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: default;
         }
 
         #chat-sidebar.chat-collapsed {
@@ -464,12 +550,15 @@
             padding: 12px 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
+            cursor: move;
+            user-select: none;
         }
 
         .chat-header h3 {
             font-size: 14px;
             font-weight: 500;
             margin: 0;
+            pointer-events: none;
         }
 
         .btn-chat-toggle {
@@ -490,7 +579,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 10px;
-            max-height: 400px;
+            max-height: 300px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -534,10 +623,66 @@
             word-break: break-word;
         }
 
+        .chat-message.player-message {
+            background: rgba(59, 76, 202, 0.3);
+            border-left: 3px solid #3B4CCA;
+        }
+
+        .chat-message.player-message .nickname {
+            color: #FFCB05;
+        }
+
+        /* ==================== 聊天輸入框 ==================== */
+        .chat-input-container {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 13px;
+            outline: none;
+        }
+
+        #chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        #chat-input:focus {
+            border-color: #4CAF50;
+        }
+
+        .btn-send-chat {
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-send-chat:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-send-chat:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
         /* ==================== 開啟聊天按鈕 ==================== */
         .btn-floating-chat {
             position: fixed;
-            top: 10px;
+            top: 150px;
             right: 10px;
             padding: 10px 15px;
             background: rgba(0, 0, 0, 0.7);
@@ -587,6 +732,11 @@
                 <input type="range" id="difficulty-slider" min="5" max="30" value="10" data-default="10">
             </div>
 
+            <div class="input-group">
+                <label for="time-limit-slider">回合時間: <span id="time-limit-value">--</span> 秒</label>
+                <input type="range" id="time-limit-slider" min="10" max="60" step="10" value="30" data-default="30">
+            </div>
+
             <button class="btn btn-primary" id="create-room-btn">建立房間</button>
 
             <div class="divider">
@@ -607,10 +757,10 @@
         <div class="lobby-container">
             <h2>🏠 房間已建立</h2>
             <p>分享以下代碼給你的對手：</p>
-            <div class="room-code" id="room-code-display">------</div>
+            <div class="room-code" id="room-code-display" title="點擊複製房間代碼">------</div>
             <p class="waiting-status loading-dots" id="waiting-status">等待對手加入</p>
             <button class="btn btn-share" id="share-spectate-btn" style="margin-top: 15px;">
-                📺 複製觀戰連結
+                🔗 複製房間連結
             </button>
             <p id="share-copied-hint" style="color: #4CAF50; font-size: 14px; margin-top: 10px; display: none;">
                 ✓ 已複製到剪貼簿！
@@ -634,6 +784,11 @@
 
         <!-- 回合指示器 -->
         <div id="turn-panel">
+            <div class="room-info">
+                房間 <span class="room-code-label" id="game-room-code" title="點擊複製房間代碼">------</span>
+                <br>
+                <button id="game-copy-spectate-btn" class="btn-copy-spectate">🔗 複製房間連結</button>
+            </div>
             <div class="turn-indicator my-turn" id="turn-indicator">你的回合</div>
             <div class="timer-container">
                 <span class="timer-label">剩餘時間</span>
@@ -654,12 +809,16 @@
         </div>
 
         <!-- 彈幕側邊欄 -->
-        <div id="chat-sidebar" class="chat-collapsed">
+        <div id="chat-sidebar">
             <div class="chat-header">
-                <h3>💬 觀眾留言</h3>
+                <h3>💬 留言板</h3>
                 <button id="toggle-chat-btn" class="btn-chat-toggle" title="關閉">✕</button>
             </div>
             <div id="chat-messages"></div>
+            <div class="chat-input-container">
+                <input type="text" id="chat-input" placeholder="輸入留言..." maxlength="50">
+                <button id="send-chat-btn" class="btn-send-chat">發送</button>
+            </div>
         </div>
 
         <!-- 展開聊天按鈕 -->
@@ -683,9 +842,12 @@
 
     <!-- 遊戲結束畫面 -->
     <div id="game-over">
-        <h2 id="game-result">遊戲結束</h2>
-        <button class="btn btn-primary" id="restart-btn">再玩一次</button>
-        <button class="btn btn-secondary" id="back-to-menu-btn">返回選單</button>
+        <div class="drag-handle">拖曳移動</div>
+        <div class="content">
+            <h2 id="game-result">遊戲結束</h2>
+            <button class="btn btn-primary" id="restart-btn">再玩一次</button>
+            <button class="btn btn-secondary" id="back-to-menu-btn">返回選單</button>
+        </div>
     </div>
 
     <!-- Import maps polyfill -->
@@ -700,6 +862,12 @@
       }
     </script>
 
-    <script type="module" src="script.js"></script>
+    <script>
+        // 動態載入 JS 避免快取
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'script.js?v=' + Date.now();
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>

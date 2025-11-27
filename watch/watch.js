@@ -544,6 +544,7 @@ class WatchController {
         this.elements = {
             loadingScreen: document.getElementById('loading-screen'),
             errorScreen: document.getElementById('error-screen'),
+            waitingScreen: document.getElementById('waiting-screen'),
             spectateScreen: document.getElementById('spectate-screen'),
             loadingStatus: document.getElementById('loading-status'),
             errorMessage: document.getElementById('error-message'),
@@ -602,7 +603,6 @@ class WatchController {
         // 觀戰加入成功
         this.client.onSpectateJoined = (data) => {
             console.log('觀戰加入成功:', data);
-            this.showSpectateScreen();
 
             this.elements.roomCodeDisplay.textContent = `房間: ${data.roomCode}`;
             this.elements.spectatorCount.textContent = `觀戰人數: ${data.spectatorCount}`;
@@ -613,13 +613,20 @@ class WatchController {
             this.elements.hostName.textContent = this.hostName;
             this.elements.guestName.textContent = this.guestName;
 
-            // 如果遊戲已在進行中，載入當前狀態
-            if (data.game) {
+            // 檢查房間狀態
+            if (data.gameState === 'waiting') {
+                // 房間正在等待玩家加入
+                this.showWaitingScreen();
+                this.addSystemMessage('房間等待中，等待玩家加入...');
+            } else if (data.gameState === 'playing' && data.game) {
+                // 遊戲進行中，載入當前狀態
+                this.showSpectateScreen();
                 this.loadGameState(data.game);
+                this.addSystemMessage('已加入觀戰');
+            } else {
+                this.showSpectateScreen();
+                this.addSystemMessage('已加入觀戰');
             }
-
-            // 添加系統訊息
-            this.addSystemMessage('已加入觀戰');
         };
 
         // 觀戰錯誤
@@ -628,8 +635,17 @@ class WatchController {
         };
 
         // 遊戲開始
-        this.client.onGameStart = (data) => {
+        this.client.onGameStart = async (data) => {
             console.log('遊戲開始:', data);
+
+            // 如果之前在等待畫面，切換到觀戰畫面
+            this.showSpectateScreen();
+
+            // 確保渲染器尺寸正確（從等待畫面切換過來時需要）
+            if (this.renderer.renderer) {
+                this.renderer.onWindowResize();
+            }
+
             this.gameActive = true;
             this.currentPlayer = data.currentPlayer;
 
@@ -780,13 +796,17 @@ class WatchController {
     }
 
     updateTimer(seconds) {
-        this.elements.timerDisplay.textContent = seconds;
         this.elements.timerDisplay.classList.remove('timer-warning', 'timer-danger');
 
-        if (seconds <= 5) {
-            this.elements.timerDisplay.classList.add('timer-danger');
-        } else if (seconds <= 10) {
-            this.elements.timerDisplay.classList.add('timer-warning');
+        if (seconds === null || seconds === undefined) {
+            this.elements.timerDisplay.textContent = '--';
+        } else {
+            this.elements.timerDisplay.textContent = seconds;
+            if (seconds <= 5) {
+                this.elements.timerDisplay.classList.add('timer-danger');
+            } else if (seconds <= 10) {
+                this.elements.timerDisplay.classList.add('timer-warning');
+            }
         }
     }
 
@@ -864,7 +884,21 @@ class WatchController {
     showSpectateScreen() {
         this.elements.loadingScreen.classList.add('hidden');
         this.elements.errorScreen.classList.add('hidden');
+        this.elements.waitingScreen?.classList.add('hidden');
         this.elements.spectateScreen.classList.remove('hidden');
+    }
+
+    showWaitingScreen() {
+        this.elements.loadingScreen.classList.add('hidden');
+        this.elements.errorScreen.classList.add('hidden');
+        this.elements.spectateScreen.classList.add('hidden');
+        this.elements.waitingScreen?.classList.remove('hidden');
+
+        // 更新等待畫面的房間代碼
+        const roomCodeEl = document.getElementById('waiting-room-code');
+        if (roomCodeEl && this.client.roomCode) {
+            roomCodeEl.textContent = this.client.roomCode;
+        }
     }
 
     showError(message) {

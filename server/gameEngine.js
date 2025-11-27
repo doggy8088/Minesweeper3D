@@ -28,9 +28,9 @@ export class GameEngine {
         this.isFirstMove = true; // 是否為第一次點擊
         this.minesPlaced = false; // 地雷是否已佈置
 
-        // 計時器
+        // 計時器（第一次點擊後才會啟動）
         this.turnTimer = null;
-        this.timeRemaining = this.turnTimeLimit;
+        this.timeRemaining = null; // 開局時不顯示時間
         this.onTimerUpdate = onTimerUpdate;
         this.onTurnTimeout = onTurnTimeout;
 
@@ -188,9 +188,10 @@ export class GameEngine {
             this.scores[player] += revealedTiles.length * 10;
         }
 
-        // 標記第一次移動已完成
+        // 第一次移動完成後，啟動計時器
         if (this.isFirstMove) {
             this.isFirstMove = false;
+            this.startTimer();
         }
 
         // 檢查是否踩到地雷（第一下不可能踩到）
@@ -215,7 +216,8 @@ export class GameEngine {
         const winCheck = this.checkWinCondition();
         if (winCheck.isWin) {
             this.gameStatus = 'finished';
-            this.winner = this.lastPassedBy || player;
+            // 揭開最後一個安全格的玩家獲勝
+            this.winner = player;
             this.stopTimer();
 
             return {
@@ -229,8 +231,7 @@ export class GameEngine {
             };
         }
 
-        // 重置計時器
-        this.resetTimer();
+        // 開局後切換到正常回合時間（計時器已在上面啟動）
 
         return {
             success: true,
@@ -239,7 +240,9 @@ export class GameEngine {
             gameOver: false,
             canPass: this.revealsThisTurn >= CONFIG.MIN_REVEALS_TO_PASS,
             revealsThisTurn: this.revealsThisTurn,
-            scores: this.scores
+            scores: this.scores,
+            timerStarted: isFirstMove, // 標記是否剛啟動計時器
+            timeRemaining: this.timeRemaining
         };
     }
 
@@ -382,7 +385,23 @@ export class GameEngine {
     handleTimeout() {
         const player = this.currentPlayer;
 
-        // 找到一個安全格子隨機揭開
+        // 第一回合超時（未開局）= 直接判輸
+        if (this.isFirstMove) {
+            this.gameStatus = 'finished';
+            this.winner = player === 'host' ? 'guest' : 'host';
+            this.stopTimer();
+
+            return {
+                timeout: true,
+                gameOver: true,
+                winner: this.winner,
+                loser: player,
+                reason: 'first_move_timeout',
+                scores: this.scores
+            };
+        }
+
+        // 正常回合超時：隨機揭開安全格並傳遞
         const safeTiles = this.getSafeTiles();
 
         if (safeTiles.length > 0) {
@@ -533,6 +552,7 @@ export class GameEngine {
             winner: this.winner,
             timeRemaining: this.timeRemaining,
             turnTimeLimit: this.turnTimeLimit,
+            isFirstMove: this.isFirstMove,
             canPass: this.revealsThisTurn >= CONFIG.MIN_REVEALS_TO_PASS,
             scores: this.scores,
             grid: this.getFullGridForSpectator() // 觀戰者獲得完整網格
@@ -553,6 +573,7 @@ export class GameEngine {
             winner: this.winner,
             timeRemaining: this.timeRemaining,
             turnTimeLimit: this.turnTimeLimit,
+            isFirstMove: this.isFirstMove,
             canPass: this.revealsThisTurn >= CONFIG.MIN_REVEALS_TO_PASS,
             scores: this.scores,
             grid: this.getClientGrid()

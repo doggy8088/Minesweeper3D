@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>踩地雷後台管理</title>
-    <link rel="stylesheet" href="admin.css">
+    <script>
+        // 動態載入 CSS 避免快取
+        const adminCss = document.createElement('link');
+        adminCss.rel = 'stylesheet';
+        adminCss.href = 'admin.css?v=' + Date.now();
+        document.head.appendChild(adminCss);
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script type="importmap">
     {
@@ -159,6 +165,12 @@
     </div>
 
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    <script type="module" src="admin.js"></script>
+    <script>
+        // 動態載入 JS 避免快取
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'admin.js?v=' + Date.now();
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>

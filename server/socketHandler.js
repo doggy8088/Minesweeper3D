@@ -60,14 +60,34 @@ export function setupSocketHandlers(io, adminNamespace) {
         socket.on('join_room', (data) => {
             const { roomCode, playerName } = data;
 
+            // 先檢查房間是否存在
+            const room = roomManager.getRoomByCode(roomCode);
+            if (!room) {
+                socket.emit('join_error', { error: '房間不存在' });
+                return;
+            }
+
+            // 若遊戲已開始，引導用戶進入觀戰模式
+            if (room.gameState === 'playing') {
+                socket.emit('redirect_to_spectate', { 
+                    roomCode: room.code,
+                    message: '遊戲已開始，將為您開啟觀戰模式'
+                });
+                return;
+            }
+
+            // 若遊戲已結束
+            if (room.gameState === 'finished') {
+                socket.emit('join_error', { error: '遊戲已結束' });
+                return;
+            }
+
             const result = roomManager.joinRoom(roomCode, socket.id, playerName);
 
             if (!result.success) {
                 socket.emit('join_error', { error: result.error });
                 return;
             }
-
-            const room = result.room;
 
             // 加入 Socket.IO 房間
             socket.join(room.code);
@@ -127,7 +147,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 canPass: result.canPass,
                 revealsThisTurn: result.revealsThisTurn,
                 scores: result.scores,
-                timeRemaining: room.game.timeRemaining
+                timeRemaining: result.timeRemaining,
+                timerStarted: result.timerStarted
             });
 
             // 廣播給觀戰者（包含完整地雷資訊）
@@ -140,7 +161,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 canPass: result.canPass,
                 revealsThisTurn: result.revealsThisTurn,
                 scores: result.scores,
-                timeRemaining: room.game.timeRemaining
+                timeRemaining: result.timeRemaining,
+                timerStarted: result.timerStarted
             });
 
             // 如果遊戲結束
@@ -297,8 +319,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 return;
             }
 
-            if (room.gameState !== 'playing') {
-                socket.emit('spectate_error', { error: '遊戲尚未開始或已結束' });
+            if (room.gameState === 'finished') {
+                socket.emit('spectate_error', { error: '遊戲已結束' });
                 return;
             }
 
@@ -318,7 +340,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 hostName: room.host?.name,
                 guestName: room.guest?.name,
                 spectatorCount: roomManager.getSpectatorCount(roomCode),
-                game: room.game ? room.game.getClientGameState() : null
+                gameState: room.gameState,
+                game: room.game ? room.game.getGameState() : null
             });
 
             // 廣播觀戰人數更新
@@ -346,7 +369,7 @@ export function setupSocketHandlers(io, adminNamespace) {
         /**
          * 發送彈幕
          */
-        socket.on('send_danmaku', ({ roomCode, message, nickname }) => {
+        socket.on('send_danmaku', ({ roomCode, message, nickname, isPlayer }) => {
             // 驗證房間存在
             const room = roomManager.getRoomByCode(roomCode);
             if (!room) return;
@@ -374,7 +397,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 id: `${socket.id}-${now}`,
                 nickname: safeNickname,
                 message: trimmedMessage,
-                timestamp: now
+                timestamp: now,
+                isPlayer: !!isPlayer
             };
 
             // 廣播給房間內所有人 (玩家 + 公開觀戰者)
@@ -420,8 +444,7 @@ function startGame(io, room) {
     room.gameState = 'playing';
     room.gameStartedAt = Date.now(); // 記錄遊戲開始時間
 
-    // 啟動計時器
-    room.game.startTimer();
+    // 不啟動計時器，等待第一次點擊後才開始計時
 
     // 通知雙方遊戲開始
     io.to(room.code).emit('game_start', {
@@ -430,7 +453,8 @@ function startGame(io, room) {
         minesCount: room.settings.minesCount,
         currentPlayer: startingPlayer,
         turnTimeLimit: room.settings.turnTimeLimit,
-        timeRemaining: room.settings.turnTimeLimit,
+        timeRemaining: null, // 開局時不顯示時間
+        isFirstMove: true,
         host: {
             name: room.host.name
         },
@@ -446,7 +470,8 @@ function startGame(io, room) {
         minesCount: room.settings.minesCount,
         currentPlayer: startingPlayer,
         turnTimeLimit: room.settings.turnTimeLimit,
-        timeRemaining: room.settings.turnTimeLimit,
+        timeRemaining: null, // 開局時不顯示時間
+        isFirstMove: true,
         host: {
             name: room.host.name
         },

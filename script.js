@@ -698,6 +698,11 @@ class MultiplayerClient {
             if (this.onError) this.onError(data);
         });
 
+        // 遊戲已開始，重定向到觀戰
+        this.socket.on('redirect_to_spectate', (data) => {
+            if (this.onRedirectToSpectate) this.onRedirectToSpectate(data);
+        });
+
         // 重新開始請求
         this.socket.on('restart_requested', (data) => {
             if (this.onRestartRequested) this.onRestartRequested(data);
@@ -738,6 +743,10 @@ class MultiplayerClient {
         this.socket.emit('accept_restart');
     }
 
+    sendDanmaku(roomCode, message, nickname) {
+        this.socket.emit('send_danmaku', { roomCode, message, nickname, isPlayer: true });
+    }
+
     isMyTurn(currentPlayer) {
         return currentPlayer === this.playerRole;
     }
@@ -766,6 +775,8 @@ class GameUI {
             joinRoomBtn: document.getElementById('join-room-btn'),
             difficultySlider: document.getElementById('difficulty-slider'),
             difficultyValue: document.getElementById('difficulty-value'),
+            timeLimitSlider: document.getElementById('time-limit-slider'),
+            timeLimitValue: document.getElementById('time-limit-value'),
 
             // 大廳
             roomCodeDisplay: document.getElementById('room-code-display'),
@@ -796,17 +807,42 @@ class GameUI {
             chatMessages: document.getElementById('chat-messages'),
             toggleChatBtn: document.getElementById('toggle-chat-btn'),
             openChatBtn: document.getElementById('open-chat-btn'),
-            chatUnreadBadge: document.getElementById('chat-unread-badge')
+            chatUnreadBadge: document.getElementById('chat-unread-badge'),
+            chatInput: document.getElementById('chat-input'),
+            sendChatBtn: document.getElementById('send-chat-btn'),
+            gameRoomCode: document.getElementById('game-room-code'),
+            gameCopySpectateBtn: document.getElementById('game-copy-spectate-btn')
         };
     }
 
     init() {
         this.cacheElements();
 
+        // 從 localStorage 載入玩家名稱
+        const savedName = localStorage.getItem('playerName');
+        if (savedName && this.elements.playerNameInput) {
+            this.elements.playerNameInput.value = savedName;
+        }
+
+        // 玩家名稱變更時儲存到 localStorage
+        this.elements.playerNameInput?.addEventListener('change', (e) => {
+            const name = e.target.value.trim();
+            if (name) {
+                localStorage.setItem('playerName', name);
+            }
+        });
+
         // 難度滑桿
         if (this.elements.difficultySlider) {
             this.elements.difficultySlider.addEventListener('input', (e) => {
                 this.elements.difficultyValue.textContent = e.target.value;
+            });
+        }
+
+        // 回合時間滑桿
+        if (this.elements.timeLimitSlider) {
+            this.elements.timeLimitSlider.addEventListener('input', (e) => {
+                this.elements.timeLimitValue.textContent = e.target.value;
             });
         }
 
@@ -824,6 +860,12 @@ class GameUI {
                     this.elements.difficultySlider.value = config.defaultMinesCount;
                     this.elements.difficultySlider.dataset.default = config.defaultMinesCount;
                     this.elements.difficultyValue.textContent = config.defaultMinesCount;
+                }
+                // 更新回合時間滑桿的預設值
+                if (this.elements.timeLimitSlider && config.turnTimeLimit) {
+                    this.elements.timeLimitSlider.value = config.turnTimeLimit;
+                    this.elements.timeLimitSlider.dataset.default = config.turnTimeLimit;
+                    this.elements.timeLimitValue.textContent = config.turnTimeLimit;
                 }
             }
         } catch (error) {
@@ -850,6 +892,8 @@ class GameUI {
         this.showScreen('gameScreen');
         if (this.elements.gameOverScreen) {
             this.elements.gameOverScreen.style.display = 'none';
+            // 重置拖曳狀態，以便下次重新初始化
+            this._gameOverDragInitialized = false;
         }
     }
 
@@ -867,8 +911,13 @@ class GameUI {
 
     updateTimer(seconds) {
         if (this.elements.timerDisplay) {
-            this.elements.timerDisplay.textContent = seconds;
-            this.elements.timerDisplay.className = seconds <= 5 ? 'timer-critical' : '';
+            if (seconds === null || seconds === undefined) {
+                this.elements.timerDisplay.textContent = '--';
+                this.elements.timerDisplay.className = '';
+            } else {
+                this.elements.timerDisplay.textContent = seconds;
+                this.elements.timerDisplay.className = seconds <= 5 ? 'timer-critical' : '';
+            }
         }
     }
 
@@ -898,7 +947,14 @@ class GameUI {
 
     showGameOver(isWinner, reason, scores) {
         if (this.elements.gameOverScreen) {
+            // 重置位置到螢幕中央
+            this.elements.gameOverScreen.style.top = '50%';
+            this.elements.gameOverScreen.style.left = '50%';
+            this.elements.gameOverScreen.style.transform = 'translate(-50%, -50%)';
             this.elements.gameOverScreen.style.display = 'block';
+
+            // 初始化拖曳功能
+            this.initGameOverDrag();
         }
 
         if (this.elements.gameResult) {
@@ -921,6 +977,74 @@ class GameUI {
         }
     }
 
+    initGameOverDrag() {
+        const dialog = this.elements.gameOverScreen;
+        const handle = dialog.querySelector('.drag-handle');
+        if (!handle || this._gameOverDragInitialized) return;
+
+        this._gameOverDragInitialized = true;
+
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        const onMouseDown = (e) => {
+            isDragging = true;
+            // 移除 transform，改用絕對定位
+            const rect = dialog.getBoundingClientRect();
+            dialog.style.transform = 'none';
+            dialog.style.left = rect.left + 'px';
+            dialog.style.top = rect.top + 'px';
+
+            startX = e.clientX;
+            startY = e.clientY;
+            initialX = rect.left;
+            initialY = rect.top;
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            let newX = initialX + dx;
+            let newY = initialY + dy;
+
+            // 限制在視窗範圍內
+            const rect = dialog.getBoundingClientRect();
+            newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
+            newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
+
+            dialog.style.left = newX + 'px';
+            dialog.style.top = newY + 'px';
+        };
+
+        const onMouseUp = () => {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        handle.addEventListener('mousedown', onMouseDown);
+
+        // 支援觸控
+        handle.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            onMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: true });
+
+        document.addEventListener('touchend', onMouseUp);
+    }
+
     showError(message) {
         alert(message);
     }
@@ -931,11 +1055,11 @@ class GameUI {
         }
     }
 
-    addChatMessage(nickname, content) {
+    addChatMessage(nickname, content, isPlayer = false) {
         if (!this.elements.chatMessages) return;
 
         const messageEl = document.createElement('div');
-        messageEl.className = 'chat-message';
+        messageEl.className = 'chat-message' + (isPlayer ? ' player-message' : '');
         messageEl.innerHTML = `
             <div class="nickname">${this.escapeHtml(nickname)}</div>
             <div class="content">${this.escapeHtml(content)}</div>
@@ -991,6 +1115,10 @@ class GameUI {
     getMinesCount() {
         return parseInt(this.elements.difficultySlider?.value) || 10;
     }
+
+    getTurnTimeLimit() {
+        return parseInt(this.elements.timeLimitSlider?.value) || 30;
+    }
 }
 
 // ==========================================
@@ -1006,7 +1134,7 @@ class Game {
         this.canPass = false;
         this.gameActive = false;
         this.roomCode = null;
-        this.chatOpen = false;
+        this.chatOpen = true;  // 預設開啟聊天
         this.unreadMessages = 0;
     }
 
@@ -1031,8 +1159,24 @@ class Game {
         this.setupEventHandlers();
         this.setupUIEventListeners();
 
-        // 顯示選單
-        this.ui.showScreen('menuScreen');
+        // 檢查 URL 參數是否有房間代碼
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomCode = urlParams.get('room');
+
+        if (roomCode) {
+            // 自動填入房間代碼並嘗試加入
+            if (this.ui.elements.roomCodeInput) {
+                this.ui.elements.roomCodeInput.value = roomCode.toUpperCase();
+            }
+            // 自動加入房間
+            const playerName = this.ui.getPlayerName();
+            this.client.joinRoom(roomCode, playerName);
+            // 清除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+            // 顯示選單
+            this.ui.showScreen('menuScreen');
+        }
     }
 
     setupEventHandlers() {
@@ -1103,6 +1247,13 @@ class Game {
             this.ui.showError(data.error);
         };
 
+        // 遊戲已開始，重定向到觀戰
+        this.client.onRedirectToSpectate = (data) => {
+            console.log('遊戲已開始，轉入觀戰模式:', data);
+            // 跳轉到觀戰頁面
+            window.location.href = `/watch?room=${data.roomCode}`;
+        };
+
         // 重新開始請求
         this.client.onRestartRequested = (data) => {
             if (confirm('對手請求重新開始，是否同意？')) {
@@ -1117,7 +1268,9 @@ class Game {
 
         // 彈幕訊息
         this.client.onDanmaku = (data) => {
-            this.ui.addChatMessage(data.nickname, data.message);
+            // 判斷是否為玩家訊息
+            const isPlayer = data.isPlayer || false;
+            this.ui.addChatMessage(data.nickname, data.message, isPlayer);
 
             // 如果聊天關閉，增加未讀計數
             if (!this.chatOpen) {
@@ -1148,7 +1301,8 @@ class Game {
         this.ui.elements.createRoomBtn?.addEventListener('click', () => {
             const playerName = this.ui.getPlayerName();
             const minesCount = this.ui.getMinesCount();
-            this.client.createRoom(playerName, { minesCount });
+            const turnTimeLimit = this.ui.getTurnTimeLimit();
+            this.client.createRoom(playerName, { minesCount, turnTimeLimit });
         });
 
         // 加入房間
@@ -1186,6 +1340,21 @@ class Game {
             this.copySpectateLink();
         });
 
+        // 大廳房間代碼點擊複製
+        this.ui.elements.roomCodeDisplay?.addEventListener('click', () => {
+            this.copyRoomCode(this.ui.elements.roomCodeDisplay);
+        });
+
+        // 遊戲畫面房間代碼點擊複製
+        this.ui.elements.gameRoomCode?.addEventListener('click', () => {
+            this.copyRoomCode(this.ui.elements.gameRoomCode);
+        });
+
+        // 遊戲畫面內的複製觀戰連結按鈕
+        this.ui.elements.gameCopySpectateBtn?.addEventListener('click', () => {
+            this.copySpectateLink(this.ui.elements.gameCopySpectateBtn);
+        });
+
         // 彈幕側邊欄開關
         this.ui.elements.toggleChatBtn?.addEventListener('click', () => {
             this.toggleChat(false);
@@ -1194,6 +1363,77 @@ class Game {
         this.ui.elements.openChatBtn?.addEventListener('click', () => {
             this.toggleChat(true);
         });
+
+        // 發送聊天訊息
+        this.ui.elements.sendChatBtn?.addEventListener('click', () => {
+            this.sendChatMessage();
+        });
+
+        this.ui.elements.chatInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
+            }
+        });
+
+        // 留言板拖曳功能
+        this.setupChatDrag();
+    }
+
+    setupChatDrag() {
+        const chatSidebar = this.ui.elements.chatSidebar;
+        const chatHeader = chatSidebar?.querySelector('.chat-header');
+        if (!chatSidebar || !chatHeader) return;
+
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        chatHeader.addEventListener('mousedown', (e) => {
+            // 忽略關閉按鈕的點擊
+            if (e.target.closest('.btn-chat-toggle')) return;
+            
+            isDragging = true;
+            const rect = chatSidebar.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            chatSidebar.style.transition = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            let newX = e.clientX - offsetX;
+            let newY = e.clientY - offsetY;
+
+            // 限制在視窗範圍內
+            const maxX = window.innerWidth - chatSidebar.offsetWidth;
+            const maxY = window.innerHeight - chatSidebar.offsetHeight;
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+
+            chatSidebar.style.left = newX + 'px';
+            chatSidebar.style.top = newY + 'px';
+            chatSidebar.style.right = 'auto';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                chatSidebar.style.transition = 'opacity 0.3s ease';
+            }
+        });
+    }
+
+    sendChatMessage() {
+        const input = this.ui.elements.chatInput;
+        if (!input || !this.roomCode) return;
+
+        const message = input.value.trim();
+        if (!message) return;
+
+        // 發送訊息
+        this.client.sendDanmaku(this.roomCode, message, this.client.playerName);
+        input.value = '';
     }
 
     startGame(data) {
@@ -1218,6 +1458,14 @@ class Game {
         this.ui.updateMineCount(data.minesCount);
         this.ui.updateScores(0, 0);
         this.ui.updateTimer(data.timeRemaining);
+
+        // 顯示房間代碼
+        if (this.ui.elements.gameRoomCode) {
+            this.ui.elements.gameRoomCode.textContent = this.roomCode;
+        }
+
+        // 初始化聊天狀態（預設開啟）
+        this.ui.setChatOpen(this.chatOpen);
 
         // 設定回合
         const isMyTurn = this.client.isMyTurn(this.currentPlayer);
@@ -1290,16 +1538,17 @@ class Game {
         return this.client.opponentName;
     }
 
-    copySpectateLink() {
+    copySpectateLink(button = null) {
         if (!this.roomCode) {
             console.warn('無法複製：roomCode 不存在');
             return;
         }
 
-        const spectateUrl = `${window.location.origin}/watch?room=${this.roomCode}`;
+        // 複製房間連結（加入房間用，若房間已滿會自動轉到觀戰）
+        const roomUrl = `${window.location.origin}/?room=${this.roomCode}`;
 
         // 使用多種方式嘗試複製
-        this.copyToClipboard(spectateUrl).then(success => {
+        this.copyToClipboard(roomUrl).then(success => {
             if (success) {
                 // 顯示已複製提示
                 if (this.ui.elements.shareCopiedHint) {
@@ -1308,9 +1557,19 @@ class Game {
                         this.ui.elements.shareCopiedHint.style.display = 'none';
                     }, 2000);
                 }
+                // 如果有按鈕參數，顯示視覺反饋
+                if (button) {
+                    const originalText = button.textContent;
+                    button.textContent = '✓ 已複製';
+                    button.classList.add('copied');
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.remove('copied');
+                    }, 2000);
+                }
             } else {
                 // 降級處理：用 prompt 顯示連結
-                prompt('請手動複製觀戰連結:', spectateUrl);
+                prompt('請手動複製房間連結:', roomUrl);
             }
         });
     }
@@ -1366,6 +1625,30 @@ class Game {
             this.unreadMessages = 0;
             this.ui.updateUnreadBadge(0);
         }
+    }
+
+    /**
+     * 複製房間代碼到剪貼簿
+     * @param {HTMLElement} element - 被點擊的元素
+     */
+    copyRoomCode(element) {
+        if (!this.roomCode) {
+            console.warn('無法複製：roomCode 不存在');
+            return;
+        }
+
+        this.copyToClipboard(this.roomCode).then(success => {
+            if (success) {
+                // 視覺反饋
+                element.classList.add('copied');
+                setTimeout(() => {
+                    element.classList.remove('copied');
+                }, 1000);
+            } else {
+                // 降級處理
+                prompt('請手動複製房間代碼:', this.roomCode);
+            }
+        });
     }
 }
 
