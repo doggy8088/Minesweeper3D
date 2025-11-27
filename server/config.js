@@ -9,7 +9,7 @@ export const CONFIG = {
     GRID_SIZE: 10,
 
     // 預設地雷數量
-    DEFAULT_MINES_COUNT: 10,
+    DEFAULT_MINES_COUNT: 18,
 
     // 傳遞回合前最少揭開格數
     MIN_REVEALS_TO_PASS: 1,

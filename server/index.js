@@ -33,6 +33,16 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+// 設定 API 端點（提供前端需要的預設設定值）
+app.get('/api/config', (req, res) => {
+    res.json({
+        defaultMinesCount: CONFIG.DEFAULT_MINES_COUNT,
+        gridSize: CONFIG.GRID_SIZE,
+        turnTimeLimit: CONFIG.TURN_TIME_LIMIT,
+        minRevealsToPass: CONFIG.MIN_REVEALS_TO_PASS
+    });
+});
+
 // 啟動伺服器
 httpServer.listen(CONFIG.PORT, () => {
     console.log('==========================================');

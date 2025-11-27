@@ -787,6 +787,26 @@ class GameUI {
                 this.elements.difficultyValue.textContent = e.target.value;
             });
         }
+
+        // 從伺服器載入預設設定
+        this.loadServerConfig();
+    }
+
+    async loadServerConfig() {
+        try {
+            const response = await fetch('/api/config');
+            if (response.ok) {
+                const config = await response.json();
+                // 更新難度滑桿的預設值
+                if (this.elements.difficultySlider && config.defaultMinesCount) {
+                    this.elements.difficultySlider.value = config.defaultMinesCount;
+                    this.elements.difficultySlider.dataset.default = config.defaultMinesCount;
+                    this.elements.difficultyValue.textContent = config.defaultMinesCount;
+                }
+            }
+        } catch (error) {
+            console.warn('無法載入伺服器設定，使用預設值:', error);
+        }
     }
 
     showScreen(screenName) {
