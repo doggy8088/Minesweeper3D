@@ -945,7 +945,8 @@ class WatchController {
     }
 
     copySpectateLink() {
-        const url = window.location.href;
+        const roomCode = this.client.roomCode;
+        const url = `${window.location.origin}/?room=${roomCode}`;
         navigator.clipboard.writeText(url).then(() => {
             const btn = this.elements.copySpectateBtn;
             const originalText = btn.textContent;
