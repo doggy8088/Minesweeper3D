@@ -315,9 +315,28 @@ body {
     margin-bottom: 5px;
 }
 
-.player-score {
-    font-size: 14px;
+.player-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 8px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: bold;
     color: #FFCB05;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: #888;
 }
 
 .vs-badge {
@@ -332,7 +351,7 @@ body {
 /* 回合指示器 */
 #turn-panel {
     position: absolute;
-    top: 360px;
+    top: 400px;
     left: 20px;
     background: rgba(0, 0, 0, 0.8);
     padding: 15px 20px;
@@ -386,15 +405,16 @@ body {
 #chat-sidebar {
     position: absolute;
     top: 60px;
-    right: 0;
+    right: 15px;
     width: 320px;
-    height: calc(100% - 60px);
+    height: calc(100% - 75px);
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     z-index: 100;
     transition: transform 0.3s ease;
+    border-radius: 12px;
 }
 
 #chat-sidebar.collapsed {

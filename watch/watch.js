@@ -46,7 +46,6 @@ class WatchRenderer {
         // 場景
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87CEEB);
-        this.scene.fog = new THREE.Fog(0x87CEEB, 20, 60);
 
         // 相機 - 使用視窗尺寸作為預設值（容器可能還是 hidden）
         const rect = container.getBoundingClientRect();
@@ -599,6 +598,8 @@ class WatchController {
             guestName: document.getElementById('guest-name'),
             hostScore: document.getElementById('host-score'),
             guestScore: document.getElementById('guest-score'),
+            hostWins: document.getElementById('host-wins'),
+            guestWins: document.getElementById('guest-wins'),
             hostCard: document.getElementById('host-card'),
             guestCard: document.getElementById('guest-card'),
             turnIndicator: document.getElementById('turn-indicator'),
@@ -671,6 +672,12 @@ class WatchController {
             this.elements.hostName.textContent = this.hostName;
             this.elements.guestName.textContent = this.guestName;
 
+            // 更新勝場資訊
+            if (data.matchStats) {
+                this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
+                this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
+            }
+
             // 載入歷史訊息
             if (data.messageHistory && data.messageHistory.length > 0) {
                 // 清空現有訊息
@@ -729,6 +736,12 @@ class WatchController {
             this.elements.guestScore.textContent = '0';
             this.elements.gameStatusText.textContent = '遊戲進行中';
 
+            // 更新勝場資訊
+            if (data.matchStats) {
+                this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
+                this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
+            }
+
             this.renderer.createGrid(data.gridSize);
             this.updateTurnDisplay();
             this.updateTimer(data.timeRemaining);
@@ -783,6 +796,12 @@ class WatchController {
         this.client.onGameOver = (data) => {
             this.gameActive = false;
             this.elements.gameStatusText.textContent = '等待下一局';
+
+            // 更新勝場資訊
+            if (data.matchStats) {
+                this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
+                this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
+            }
 
             // 顯示所有地雷
             if (data.allMines) {

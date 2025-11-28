@@ -402,6 +402,7 @@ export function setupSocketHandlers(io, adminNamespace) {
                 spectatorCount: roomManager.getSpectatorCount(roomCode),
                 gameState: room.gameState,
                 game: room.game ? room.game.getGameState() : null,
+                matchStats: room.matchStats,
                 messageHistory: messageHistory
             });
 

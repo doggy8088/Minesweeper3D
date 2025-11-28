@@ -613,7 +613,6 @@ class SpectateRenderer {
         // 場景
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87CEEB);
-        this.scene.fog = new THREE.Fog(0x87CEEB, 20, 60);
 
         // 相機
         const rect = container.getBoundingClientRect();
