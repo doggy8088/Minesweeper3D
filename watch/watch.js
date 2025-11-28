@@ -692,7 +692,7 @@ class WatchController {
                 this.elements.chatMessages.innerHTML = '';
                 // 顯示歷史訊息
                 for (const msg of data.messageHistory) {
-                    this.addChatMessage(msg.nickname, msg.message, msg.timestamp, msg.isPlayer);
+                    this.addChatMessage(msg.nickname, msg.message, msg.timestamp, msg.isPlayer, msg.playerRole);
                 }
             }
 
@@ -878,7 +878,7 @@ class WatchController {
 
         // 彈幕訊息
         this.client.onDanmaku = (data) => {
-            this.addChatMessage(data.nickname, data.message, data.timestamp, data.isPlayer);
+            this.addChatMessage(data.nickname, data.message, data.timestamp, data.isPlayer, data.playerRole);
         };
     }
 
@@ -969,16 +969,29 @@ class WatchController {
         }
     }
 
-    addChatMessage(nickname, content, timestamp, isPlayer = false) {
+    addChatMessage(nickname, content, timestamp, isPlayer = false, playerRole = null) {
         const messageEl = document.createElement('div');
-        messageEl.className = isPlayer ? 'chat-message player' : 'chat-message';
+        
+        // 設定樣式類別
+        let className = 'chat-message';
+        if (isPlayer) {
+            className += playerRole === 'host' ? ' player-host' : ' player-guest';
+        }
+        messageEl.className = className;
 
         const time = new Date(timestamp).toLocaleTimeString('zh-TW', {
             hour: '2-digit',
             minute: '2-digit'
         });
 
-        const displayName = isPlayer ? `🎮 ${this.escapeHtml(nickname)}` : this.escapeHtml(nickname);
+        // 設定顯示名稱和 emoji
+        let displayName;
+        if (isPlayer) {
+            const emoji = playerRole === 'host' ? '🏠' : '👤';
+            displayName = `${emoji} ${this.escapeHtml(nickname)}`;
+        } else {
+            displayName = this.escapeHtml(nickname);
+        }
 
         messageEl.innerHTML = `
             <div class="nickname">${displayName}</div>

@@ -430,7 +430,7 @@ export function setupSocketHandlers(io, adminNamespace) {
         /**
          * 發送彈幕
          */
-        socket.on('send_danmaku', ({ roomCode, message, nickname, isPlayer }) => {
+        socket.on('send_danmaku', ({ roomCode, message, nickname, isPlayer, playerRole }) => {
             // 驗證房間存在
             const room = roomManager.getRoomByCode(roomCode);
             if (!room) return;
@@ -459,7 +459,8 @@ export function setupSocketHandlers(io, adminNamespace) {
                 nickname: safeNickname,
                 message: trimmedMessage,
                 timestamp: now,
-                isPlayer: !!isPlayer
+                isPlayer: !!isPlayer,
+                playerRole: isPlayer ? playerRole : null
             };
 
             // 記錄訊息到歷史

@@ -803,6 +803,24 @@
             color: #FFCB05;
         }
 
+        .chat-message.player-host {
+            background: rgba(255, 203, 5, 0.15);
+            border-left: 3px solid #FFCB05;
+        }
+
+        .chat-message.player-host .nickname {
+            color: #FFCB05;
+        }
+
+        .chat-message.player-guest {
+            background: rgba(33, 150, 243, 0.15);
+            border-left: 3px solid #2196F3;
+        }
+
+        .chat-message.player-guest .nickname {
+            color: #2196F3;
+        }
+
         /* ==================== 聊天輸入框 ==================== */
         .chat-input-container {
             display: flex;
@@ -871,9 +889,8 @@
             border-color: rgba(255, 255, 255, 0.4);
         }
 
-        .btn-floating-chat.chat-open {
-            opacity: 0;
-            pointer-events: none;
+        .btn-floating-chat.hidden {
+            display: none;
         }
 
         .unread-badge {

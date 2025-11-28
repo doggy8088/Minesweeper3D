@@ -797,7 +797,13 @@ class MultiplayerClient {
     }
 
     sendDanmaku(roomCode, message, nickname) {
-        this.socket.emit('send_danmaku', { roomCode, message, nickname, isPlayer: true });
+        this.socket.emit('send_danmaku', { 
+            roomCode, 
+            message, 
+            nickname, 
+            isPlayer: true,
+            playerRole: this.playerRole
+        });
     }
 
     updatePlayerName(newName) {
@@ -1206,12 +1212,27 @@ class GameUI {
         }
     }
 
-    addChatMessage(nickname, content, isPlayer = false) {
+    addChatMessage(nickname, content, isPlayer = false, playerRole = null) {
         if (!this.elements.chatMessages) return;
 
         const messageEl = document.createElement('div');
-        messageEl.className = 'chat-message' + (isPlayer ? ' player-message' : '');
-        const displayName = isPlayer ? `🎮 ${this.escapeHtml(nickname)}` : this.escapeHtml(nickname);
+        
+        // 設定樣式類別
+        let className = 'chat-message';
+        if (isPlayer) {
+            className += playerRole === 'host' ? ' player-host' : ' player-guest';
+        }
+        messageEl.className = className;
+        
+        // 設定顯示名稱和 emoji
+        let displayName;
+        if (isPlayer) {
+            const emoji = playerRole === 'host' ? '🏠' : '👤';
+            displayName = `${emoji} ${this.escapeHtml(nickname)}`;
+        } else {
+            displayName = this.escapeHtml(nickname);
+        }
+        
         messageEl.innerHTML = `
             <div class="nickname">${displayName}</div>
             <div class="content">${this.escapeHtml(content)}</div>
@@ -1237,7 +1258,8 @@ class GameUI {
             this.elements.chatSidebar.classList.toggle('chat-collapsed', !isOpen);
         }
         if (this.elements.openChatBtn) {
-            this.elements.openChatBtn.classList.toggle('chat-open', isOpen);
+            // 留言板關閉時顯示浮動按鈕，開啟時隱藏
+            this.elements.openChatBtn.classList.toggle('hidden', isOpen);
         }
     }
 
@@ -1434,7 +1456,7 @@ class Game {
         this.client.onDanmaku = (data) => {
             // 判斷是否為玩家訊息
             const isPlayer = data.isPlayer || false;
-            this.ui.addChatMessage(data.nickname, data.message, isPlayer);
+            this.ui.addChatMessage(data.nickname, data.message, isPlayer, data.playerRole);
 
             // 如果聊天關閉，增加未讀計數
             if (!this.chatOpen) {
