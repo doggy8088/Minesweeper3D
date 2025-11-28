@@ -530,6 +530,15 @@ body {
     color: #667eea;
 }
 
+.chat-message.player {
+    background: rgba(255, 203, 5, 0.15);
+    border-left: 3px solid #FFCB05;
+}
+
+.chat-message.player .nickname {
+    color: #FFCB05;
+}
+
 .chat-input-area {
     padding: 15px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);

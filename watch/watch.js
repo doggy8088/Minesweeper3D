@@ -692,7 +692,7 @@ class WatchController {
                 this.elements.chatMessages.innerHTML = '';
                 // 顯示歷史訊息
                 for (const msg of data.messageHistory) {
-                    this.addChatMessage(msg.nickname, msg.message, msg.timestamp);
+                    this.addChatMessage(msg.nickname, msg.message, msg.timestamp, msg.isPlayer);
                 }
             }
 
@@ -878,7 +878,7 @@ class WatchController {
 
         // 彈幕訊息
         this.client.onDanmaku = (data) => {
-            this.addChatMessage(data.nickname, data.message, data.timestamp);
+            this.addChatMessage(data.nickname, data.message, data.timestamp, data.isPlayer);
         };
     }
 
@@ -969,17 +969,19 @@ class WatchController {
         }
     }
 
-    addChatMessage(nickname, content, timestamp) {
+    addChatMessage(nickname, content, timestamp, isPlayer = false) {
         const messageEl = document.createElement('div');
-        messageEl.className = 'chat-message';
+        messageEl.className = isPlayer ? 'chat-message player' : 'chat-message';
 
         const time = new Date(timestamp).toLocaleTimeString('zh-TW', {
             hour: '2-digit',
             minute: '2-digit'
         });
 
+        const displayName = isPlayer ? `🎮 ${this.escapeHtml(nickname)}` : this.escapeHtml(nickname);
+
         messageEl.innerHTML = `
-            <div class="nickname">${this.escapeHtml(nickname)}</div>
+            <div class="nickname">${displayName}</div>
             <div class="content">${this.escapeHtml(content)}</div>
             <div class="time">${time}</div>
         `;

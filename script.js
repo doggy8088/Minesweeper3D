@@ -1211,8 +1211,9 @@ class GameUI {
 
         const messageEl = document.createElement('div');
         messageEl.className = 'chat-message' + (isPlayer ? ' player-message' : '');
+        const displayName = isPlayer ? `🎮 ${this.escapeHtml(nickname)}` : this.escapeHtml(nickname);
         messageEl.innerHTML = `
-            <div class="nickname">${this.escapeHtml(nickname)}</div>
+            <div class="nickname">${displayName}</div>
             <div class="content">${this.escapeHtml(content)}</div>
         `;
 
