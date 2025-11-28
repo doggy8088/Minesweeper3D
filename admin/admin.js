@@ -597,6 +597,7 @@ class SpectateRenderer {
         this.mineIndicators = []; // 地雷標記
         this.hostName = '';
         this.guestName = '';
+        this.defaultCameraPosition = { x: 0, y: 25, z: 20 };
 
         this.materials = {
             grass: new THREE.MeshStandardMaterial({ color: COLORS.GRASS, roughness: 0.8 }),
@@ -645,7 +646,12 @@ class SpectateRenderer {
         await this.loadFont();
 
         // 視窗大小變化
-        window.addEventListener('resize', () => this.onWindowResize());
+        this.onWindowResizeHandler = () => this.onWindowResize();
+        window.addEventListener('resize', this.onWindowResizeHandler);
+
+        // 鍵盤事件
+        this.onKeyDownHandler = (e) => this.onKeyDown(e);
+        window.addEventListener('keydown', this.onKeyDownHandler);
 
         // 開始渲染
         this.animate();
@@ -667,6 +673,22 @@ class SpectateRenderer {
         this.camera.aspect = rect.width / rect.height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(rect.width, rect.height);
+    }
+
+    onKeyDown(event) {
+        if (event.key === 'Escape') {
+            this.resetCamera();
+        }
+    }
+
+    resetCamera() {
+        this.camera.position.set(
+            this.defaultCameraPosition.x,
+            this.defaultCameraPosition.y,
+            this.defaultCameraPosition.z
+        );
+        this.camera.lookAt(0, 0, 0);
+        this.controls.reset();
     }
 
     animate() {
@@ -1013,6 +1035,14 @@ class SpectateRenderer {
     }
 
     destroy() {
+        // 移除事件監聽器
+        if (this.onWindowResizeHandler) {
+            window.removeEventListener('resize', this.onWindowResizeHandler);
+        }
+        if (this.onKeyDownHandler) {
+            window.removeEventListener('keydown', this.onKeyDownHandler);
+        }
+
         if (this.renderer) {
             const container = document.getElementById('game-canvas-container');
             if (container && this.renderer.domElement) {
