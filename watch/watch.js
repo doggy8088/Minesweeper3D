@@ -594,6 +594,8 @@ class WatchController {
             roomCodeDisplay: document.getElementById('room-code-display'),
             spectatorCount: document.getElementById('spectator-count'),
             gameStatusText: document.getElementById('game-status-text'),
+            matchStatsDisplay: document.getElementById('match-stats-display'),
+            copySpectateBtn: document.getElementById('copy-spectate-btn'),
             hostName: document.getElementById('host-name'),
             guestName: document.getElementById('guest-name'),
             hostScore: document.getElementById('host-score'),
@@ -619,6 +621,11 @@ class WatchController {
     }
 
     bindUIEvents() {
+        // 複製觀戰連結
+        this.elements.copySpectateBtn?.addEventListener('click', () => {
+            this.copySpectateLink();
+        });
+
         // 關閉遊戲結束提示
         this.elements.closeGameOverBtn?.addEventListener('click', () => {
             this.elements.gameOverOverlay.classList.add('hidden');
@@ -663,20 +670,21 @@ class WatchController {
         this.client.onSpectateJoined = (data) => {
             console.log('觀戰加入成功:', data);
 
-            this.elements.roomCodeDisplay.textContent = `房間: ${data.roomCode}`;
-            this.elements.spectatorCount.textContent = `觀戰人數: ${data.spectatorCount}`;
+            this.elements.roomCodeDisplay.textContent = data.roomCode;
+            this.elements.spectatorCount.textContent = data.spectatorCount;
+
+            // 更新局數
+            if (data.matchStats) {
+                this.elements.matchStatsDisplay.textContent = `第 ${(data.matchStats.gamesPlayed || 0) + 1} 局`;
+                this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
+                this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
+            }
 
             this.hostName = data.hostName || '房主';
             this.guestName = data.guestName || '挑戰者';
 
             this.elements.hostName.textContent = this.hostName;
             this.elements.guestName.textContent = this.guestName;
-
-            // 更新勝場資訊
-            if (data.matchStats) {
-                this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
-                this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
-            }
 
             // 載入歷史訊息
             if (data.messageHistory && data.messageHistory.length > 0) {
@@ -736,8 +744,9 @@ class WatchController {
             this.elements.guestScore.textContent = '0';
             this.elements.gameStatusText.textContent = '遊戲進行中';
 
-            // 更新勝場資訊
+            // 更新勝場與局數資訊
             if (data.matchStats) {
+                this.elements.matchStatsDisplay.textContent = `第 ${(data.matchStats.gamesPlayed || 0) + 1} 局`;
                 this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
                 this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
             }
@@ -797,8 +806,9 @@ class WatchController {
             this.gameActive = false;
             this.elements.gameStatusText.textContent = '等待下一局';
 
-            // 更新勝場資訊
+            // 更新勝場與局數資訊
             if (data.matchStats) {
+                this.elements.matchStatsDisplay.textContent = `第 ${(data.matchStats.gamesPlayed || 0) + 1} 局`;
                 this.elements.hostWins.textContent = data.matchStats.hostWins || 0;
                 this.elements.guestWins.textContent = data.matchStats.guestWins || 0;
             }
@@ -863,7 +873,7 @@ class WatchController {
 
         // 觀戰人數更新
         this.client.onSpectatorCountUpdate = (data) => {
-            this.elements.spectatorCount.textContent = `觀戰人數: ${data.count}`;
+            this.elements.spectatorCount.textContent = data.count;
         };
 
         // 彈幕訊息
@@ -932,6 +942,18 @@ class WatchController {
             this.elements.chatSidebar.classList.add('collapsed');
             this.elements.openChatBtn.classList.remove('hidden');
         }
+    }
+
+    copySpectateLink() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            const btn = this.elements.copySpectateBtn;
+            const originalText = btn.textContent;
+            btn.textContent = '✓ 已複製';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        });
     }
 
     sendMessage() {

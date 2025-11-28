@@ -220,7 +220,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     z-index: 100;
 }
@@ -240,19 +240,51 @@ body {
     font-weight: bold;
 }
 
-#room-code-display {
+.room-code-display {
     font-family: monospace;
     font-size: 14px;
+    color: #38ef7d;
 }
 
-#spectator-count {
-    font-size: 14px;
-    color: #aaa;
+.btn-copy-link {
+    padding: 5px 12px;
+    font-size: 11px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-copy-link:hover {
+    transform: scale(1.05);
 }
 
 .game-status {
     color: #4CAF50;
     font-weight: bold;
+    font-size: 14px;
+}
+
+.game-stats {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.match-stats {
+    background: rgba(76, 175, 80, 0.3);
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 13px;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.spectator-count {
+    font-size: 13px;
+    color: #aaa;
 }
 
 /* 3D 遊戲畫面容器 */
