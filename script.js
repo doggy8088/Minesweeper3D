@@ -1706,6 +1706,11 @@ class Game {
         if (this.ui.elements.passTurnBtn) {
             this.ui.elements.passTurnBtn.style.display = 'block';
         }
+
+        // 將焦點設到聊天輸入框
+        if (this.ui.elements.chatInput) {
+            this.ui.elements.chatInput.focus();
+        }
     }
 
     handleTileRevealed(data) {

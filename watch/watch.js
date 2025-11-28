@@ -1049,6 +1049,11 @@ class WatchController {
         requestAnimationFrame(triggerResize);
         setTimeout(triggerResize, 100);
         setTimeout(triggerResize, 300);
+
+        // 將焦點設到留言輸入框
+        if (this.elements.messageInput) {
+            this.elements.messageInput.focus();
+        }
     }
 
     showWaitingScreen() {
